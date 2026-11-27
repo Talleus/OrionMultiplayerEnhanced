@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/assets/banner.svg" alt="OrionMultiplayerEnhanced — модифицированная версия Orion Sandbox Enhanced" width="880"></p>
+<p align="center"><img src="docs/assets/banner.png" alt="OrionMultiplayerEnhanced — оригинальный фон Orion и надпись МУЛЬТИПЛЕЕР" width="880"></p>
 
 <p align="center"><strong>Orion Sandbox Enhanced со всеми нашими изменениями.</strong><br>Неофициальная модифицированная версия: одиночные и сетевые миры, персонажи, карта, доработки интерфейса и исправления.</p>
 

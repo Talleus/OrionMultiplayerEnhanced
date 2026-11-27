@@ -9,6 +9,15 @@ original icon from Orion Sandbox Enhanced, retained at the user's request.
 It remains the original game's property and is not covered by the mod's MIT
 license. The installed launcher and setup use this same identification icon.
 
+## Repository cover artwork
+
+The README cover (`docs/assets/banner.png`) uses the original Orion Sandbox
+Enhanced main-menu background and title logo, with the added Cyrillic word
+«МУЛЬТИПЛЕЕР» rendered using the game's lettering. The underlying artwork, logo,
+and lettering retain their respective rights and are outside MIT. The original
+font and raw source images are not included in the source repository. See
+`docs/assets/banner.json` and `docs/assets/README.md` for provenance and edits.
+
 ## Build tools
 
 Java 17 and JPEXS FFDec 26.2.1 are external, unbundled development tools. Obtain them from their official projects and observe their licenses. Pillow is used only to prepare icon sizes during development.

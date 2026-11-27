@@ -4,7 +4,7 @@ The project is in active development. Report bugs, ask questions, and suggest im
 
 Keep changes focused. Describe behavior, source/binary correspondence, and actual validation. Keep AS3 as UTF-8 without BOM; avoid legacy PowerShell encoding round trips.
 
-New mod classes belong in `src/`; original-dependent changes belong in `patches/` and `source-manifest.json`. Never commit a full original decompilation, original binaries/assets/runtime, saves, crash logs, credentials, or machine-specific paths.
+New mod classes belong in `src/`; original-dependent changes belong in `patches/` and `source-manifest.json`. Never commit a full original decompilation, original binaries/assets/runtime (apart from the documented identification icon and repository cover), saves, crash logs, credentials, or machine-specific paths.
 
 For networking, resolve identity from the connection, validate payloads, enforce roles on the host, and rate-limit requests. Explain compatibility changes.
 
