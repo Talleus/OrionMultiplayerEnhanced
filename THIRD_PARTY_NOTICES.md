@@ -12,8 +12,8 @@ license. The installed launcher and setup use this same identification icon.
 ## Repository cover artwork
 
 The README cover (`docs/assets/banner.png`) uses the original Orion Sandbox
-Enhanced main-menu background and title logo, with the added Cyrillic word
-«МУЛЬТИПЛЕЕР» rendered using the game's lettering. The underlying artwork, logo,
+Enhanced main-menu background and title logo, with the added English word
+"MULTIPLAYER" rendered using the game's lettering. The underlying artwork, logo,
 and lettering retain their respective rights and are outside MIT. The original
 font and raw source images are not included in the source repository. See
 `docs/assets/banner.json` and `docs/assets/README.md` for provenance and edits.

@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/assets/banner.png" alt="OrionMultiplayerEnhanced — original Orion menu artwork with МУЛЬТИПЛЕЕР lettering" width="880"></p>
+<p align="center"><img src="docs/assets/banner.png" alt="OrionMultiplayerEnhanced — original Orion menu artwork with MULTIPLAYER lettering" width="880"></p>
 
 <p align="center"><strong>Orion Sandbox Enhanced, with all our changes.</strong><br>An unofficial modified edition: single-player and multiplayer worlds, characters, maps, interface improvements, and fixes.</p>
 

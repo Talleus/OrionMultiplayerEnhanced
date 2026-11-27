@@ -1,7 +1,7 @@
 # Repository artwork
 
 `banner.png` is the README cover: the original Orion Sandbox Enhanced main-menu
-background and title logo, with the added Cyrillic label **МУЛЬТИПЛЕЕР**. It has
+background and title logo, with the added English label **MULTIPLAYER**. It has
 no menu controls, window frame, character portrait, or generated artwork.
 
 The source artwork is taken from the locally owned game. The background is SWF

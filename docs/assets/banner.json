@@ -4,7 +4,7 @@
     1280,
     720
   ],
-  "text": "МУЛЬТИПЛЕЕР",
+  "text": "MULTIPLAYER",
   "sources": {
     "background": {
       "swf_character_id": 1190,
@@ -22,7 +22,7 @@
       "font_file_bundled": false
     }
   },
-  "edits": "Crop and resize the original background; composite the original logo; add the exact Cyrillic label. No generated artwork.",
+  "edits": "Crop and resize the original background; composite the original logo; add the English label MULTIPLAYER. No generated artwork.",
   "rights": "Original game artwork and lettering are outside MIT; see THIRD_PARTY_NOTICES.md",
-  "sha256": "020ba5ee4eecbc5cc21fd937552186be762390383cd10f8e034f8fe3efc0a6a9"
+  "sha256": "0c462c57070eb268b37b8d5b463a6ba87fd780df195623ae7acf4dfd31c84a83"
 }

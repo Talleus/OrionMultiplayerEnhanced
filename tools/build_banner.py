@@ -32,7 +32,7 @@ def main():
     logo = logo.resize((logo_width, round(logo.height * logo_width / logo.width)), Image.Resampling.LANCZOS)
     cover.alpha_composite(logo, ((width - logo.width) // 2, 12))
 
-    text = "МУЛЬТИПЛЕЕР"
+    text = "MULTIPLAYER"
     size = 91
     draw = ImageDraw.Draw(cover)
     while True:
@@ -50,7 +50,7 @@ def main():
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     metadata = PngImagePlugin.PngInfo()
-    metadata.add_itxt("Description", "Original Orion Sandbox Enhanced menu artwork with the added label МУЛЬТИПЛЕЕР")
+    metadata.add_itxt("Description", "Original Orion Sandbox Enhanced menu artwork with the added label MULTIPLAYER")
     metadata.add_text("Rights", "Original game artwork and lettering remain with their respective owners; outside the project MIT license")
     cover.convert("RGB").save(args.output, optimize=True, pnginfo=metadata)
     report = {
@@ -62,7 +62,7 @@ def main():
             "logo": {"swf_character_id": 164, "source": "main_screen.main_menu_gamename, frame 1 at 2x", "sha256": hashlib.sha256(args.logo.read_bytes()).hexdigest()},
             "lettering": {"swf_character_id": 1278, "name": "ZantrokeRuFrEs", "font_file_bundled": False},
         },
-        "edits": "Crop and resize the original background; composite the original logo; add the exact Cyrillic label. No generated artwork.",
+        "edits": "Crop and resize the original background; composite the original logo; add the English label MULTIPLAYER. No generated artwork.",
         "rights": "Original game artwork and lettering are outside MIT; see THIRD_PARTY_NOTICES.md",
         "sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
     }
