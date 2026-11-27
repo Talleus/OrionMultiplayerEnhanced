@@ -1,10 +1,10 @@
-<p align="center"><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe"><img src="docs/assets/download-windows.svg" alt="Скачать установщик для Windows (.exe), около 90 МБ" width="360" height="68"></a><br><strong>1.0 · Windows 10/11 x64</strong><br><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v1.0">Описание релиза</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/SHA256SUMS.txt">SHA-256</a></p>
-
 <p align="center"><img src="docs/assets/banner.png" alt="OrionMultiplayerEnhanced — оригинальный фон Orion и надпись MULTIPLAYER" width="880"></p>
 
 <p align="center"><strong>Orion Sandbox Enhanced со всеми нашими изменениями.</strong><br>Неофициальная модифицированная версия: одиночные и сетевые миры, персонажи, карта, доработки интерфейса и исправления.</p>
 
 <p align="center"><a href="README.md">English</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe">Скачать .exe</a> · <a href="docs/INSTALL.md">Установка</a> · <a href="docs/COMMANDS.md">Команды</a> · <a href="docs/BUILD.md">Сборка</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Обратная связь</a></p>
+
+<p align="center"><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe"><img src="docs/assets/download-windows.svg" alt="Скачать установщик для Windows (.exe), около 90 МБ" width="360" height="68"></a><br><strong>1.0 · Windows 10/11 x64</strong><br><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v1.0">Описание релиза</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/SHA256SUMS.txt">SHA-256</a></p>
 
 ## Разработка и обратная связь
 
