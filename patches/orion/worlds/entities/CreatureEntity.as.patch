@@ -1,0 +1,13 @@
+--- a/orion/worlds/entities/CreatureEntity.as
++++ b/orion/worlds/entities/CreatureEntity.as
+@@ -96,6 +96,10 @@
+ 
+       public var name:String;
+ 
++      public var networkId:int;
++
++      public var networkReplica:Boolean;
++
+       public var material:int = 0;
+ 
+       public var enemiesTypes:int;

@@ -1,0 +1,70 @@
+--- a/orion/ui/game/player_dialog/SmallChestPanelUI.as
++++ b/orion/ui/game/player_dialog/SmallChestPanelUI.as
+@@ -3,11 +3,13 @@
+    import assets.*;
+    import flash.display.*;
+    import flash.events.*;
++   import orion.*;
+    import orion.inventories.*;
+    import orion.ui.*;
+    import orion.ui.base.*;
+    import orion.ui.game.*;
+    import orion.worlds.*;
++   import orion.worlds.tile_entities.*;
+    import utils.*;
+ 
+    public final class SmallChestPanelUI extends PanelUI implements IInventoryUI
+@@ -16,6 +18,8 @@
+       private var _itemsChangedSignal:Signal = new Signal();
+ 
+       private var _items:Vector.<ItemStack>;
++
++      private var _chest:BaseChestTileEntity;
+ 
+       private var _takeAll:ButtonUI;
+ 
+@@ -39,6 +43,10 @@
+       public function setItem(param1:ItemViewerUI, param2:ItemStack) : void
+       {
+          this._items[param1.index] = param2;
++         if(Context.multiplayer != null && Context.multiplayer.isClient && this._chest != null)
++         {
++            Context.multiplayer.notifyChestLayoutChanged(this._chest);
++         }
+       }
+ 
+       public function getItem(param1:int) : ItemStack
+@@ -63,7 +71,7 @@
+             _loc2_ = new ItemViewerUI(this);
+             _loc2_.setIndex(_loc1_);
+             _loc2_.x = 84 + 32 * (_loc1_ % 4) + 2 * (_loc1_ % 4);
+-            _loc2_.y = 100 + 32 * int(_loc1_ / 4) + 2 * int(_loc1_ / 4);
++            _loc2_.y = 100 + 32 * (int(_loc1_ / 4)) + 2 * (int(_loc1_ / 4));
+             this._itemsViewers[_loc1_] = _loc2_;
+             _loc1_++;
+          }
+@@ -80,6 +88,13 @@
+       {
+          super.removeEventListeners();
+          this._takeAll.removeEventListener(MouseEvent.CLICK,this._takeAll_OnClick);
++      }
++
++      public function setChest(param1:BaseChestTileEntity) : void
++      {
++         this._chest = param1;
++         this._items = param1.items;
++         invalidate();
+       }
+ 
+       public function setChestItems(param1:Vector.<ItemStack>) : void
+@@ -114,6 +129,10 @@
+             _loc3_++;
+          }
+          this._itemsChangedSignal.dispatch();
++         if(Context.multiplayer != null && Context.multiplayer.isClient && this._chest != null)
++         {
++            Context.multiplayer.notifyChestLayoutChanged(this._chest);
++         }
+       }
+    }
+ }

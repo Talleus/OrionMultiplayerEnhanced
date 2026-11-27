@@ -1,0 +1,438 @@
+--- a/orion/Controller.as
++++ b/orion/Controller.as
+@@ -215,6 +215,15 @@
+          var _loc5_:Boolean = false;
+          var _loc6_:int = 0;
+          this._player = world.player;
++         if(Context.multiplayer != null && Context.multiplayer.chatInputActive)
++         {
++            this._player.upControl = false;
++            this._player.downControl = false;
++            this._player.leftControl = false;
++            this._player.rightControl = false;
++            this._player.jumpControl = false;
++            return;
++         }
+          this.mouseOnArea = this.checkMouseOnArea();
+          if(!this._player.active || !this._player.alive)
+          {
+@@ -641,7 +650,25 @@
+             }
+             else if(this.mouseOnArea)
+             {
+-               if(this.creatureUnderCursor != null)
++               var _canAttackCursorTarget_:Boolean = this.creatureUnderCursor != null;
++               if(_canAttackCursorTarget_ && this.creatureUnderCursor is RemotePlayerEntity && Context.multiplayer != null)
++               {
++                  _canAttackCursorTarget_ = Context.multiplayer.isPvpPlayerAttack(this._player,this.creatureUnderCursor);
++               }
++               var _hasBlockAtCursor_:Boolean = false;
++               if(world != null && param1 >= 0 && param1 < world.tilesX && param2 >= 0 && param2 < world.tilesY)
++               {
++                  var _cTile_:Tile = world.tiles[param1 + param2 * world.tilesX];
++                  if(_cTile_ != null && _cTile_.blockId != 0)
++                  {
++                     _hasBlockAtCursor_ = true;
++                  }
++               }
++               if(this._itemInHand is MiningItem && _hasBlockAtCursor_)
++               {
++                  _canAttackCursorTarget_ = false;
++               }
++               if(_canAttackCursorTarget_)
+                {
+                   this.tryAttack();
+                }
+@@ -673,7 +700,7 @@
+                      this.tryDestroyBlock(param1,param2);
+                   }
+                }
+-               else
++               else if(_canAttackCursorTarget_)
+                {
+                   this.tryAttack();
+                }
+@@ -733,7 +760,7 @@
+ 
+       private function tryAttack() : void
+       {
+-         var _loc1_:Number = NaN;
++         var _loc1_:Number = Number(NaN);
+          if(this._player.onLadder && !this._player.onGround)
+          {
+             this._action = NONE_ACTION;
+@@ -867,6 +894,28 @@
+                this._action = NONE_ACTION;
+                return;
+             }
++         }
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            if(!Context.multiplayer.requestConsume(this._itemStackInHand.item.id,this._itemStackInHand.itemData))
++            {
++               this._action = NONE_ACTION;
++               return;
++            }
++            this._action = CONSUME_ACTION;
++            this._player.handAnimation();
++            if(_loc1_ is PotionItem || _loc1_ is BottleWithWaterItem)
++            {
++               sounds.playEffect(Sounds.HUMAN_SWALLOW[Random.nextInt(0,Sounds.HUMAN_SWALLOW.length - 1)],this._player.center.x,this._player.center.y);
++            }
++            else
++            {
++               sounds.playEffect(Sounds.HUMAN_CHEW[Random.nextInt(0,Sounds.HUMAN_CHEW.length - 1)],this._player.center.x,this._player.center.y);
++            }
++            return;
++         }
++         if(_loc1_.healing)
++         {
+             _loc2_ = 60;
+             if(_loc1_ is HealingPotionItem)
+             {
+@@ -924,9 +973,20 @@
+          var _loc4_:Wall = _loc3_.wall;
+          if(_loc3_.canPlace(param1,param2))
+          {
+-            --this._itemStackInHand.count;
+-            world.setWall(param1,param2,_loc3_.wall);
+-            game.statistics.addPlacedItem(_loc3_);
++            if(Context.multiplayer != null && Context.multiplayer.isClient)
++            {
++               Context.multiplayer.requestPlaceWall(param1,param2,_loc3_.id);
++            }
++            else
++            {
++               --this._itemStackInHand.count;
++               world.setWall(param1,param2,_loc3_.wall);
++               game.statistics.addPlacedItem(_loc3_);
++               if(Context.multiplayer != null)
++               {
++                  Context.multiplayer.hostWorldChanged(param1,param2);
++               }
++            }
+             this._action = BUILD_ACTION;
+             this._placedItem = _loc3_;
+             this._player.handAnimation();
+@@ -942,11 +1002,32 @@
+          var _loc4_:BlockItem = this._itemStackInHand.item as BlockItem;
+          if(_loc4_.block != null && _loc4_.block.hard)
+          {
+-            _loc6_ = Collision.entityWithRectangleCollision(this._player,param1 * Tile.SIZE,param2 * Tile.SIZE,Tile.SIZE,Tile.SIZE);
++            var _bW_:Number = (_loc4_.width > 0 ? _loc4_.width : 1) * Tile.SIZE;
++            var _bH_:Number = (_loc4_.height > 0 ? _loc4_.height : 1) * Tile.SIZE;
++            var _tileBx_:Number = param1 * Tile.SIZE;
++            var _tileBy_:Number = param2 * Tile.SIZE;
++            _loc6_ = Collision.entityWithRectangleCollision(this._player,_tileBx_,_tileBy_,_bW_,_bH_);
+             if(_loc6_)
+             {
+                _loc3_ = false;
+             }
++            if(_loc3_ && world != null && world.creatures != null)
++            {
++               var _cCheckIdx_:int = 0;
++               while(_cCheckIdx_ < world.creatures.length)
++               {
++                  var _cCheckEnt_:CreatureEntity = world.creatures[_cCheckIdx_];
++                  if(_cCheckEnt_ != null && _cCheckEnt_ != this._player && _cCheckEnt_.alive && _cCheckEnt_.visible && _cCheckEnt_.type != CreatureEntity.GHOST_TYPE)
++                  {
++                     if(Collision.entityWithRectangleCollision(_cCheckEnt_,_tileBx_,_tileBy_,_bW_,_bH_))
++                     {
++                        _loc3_ = false;
++                        break;
++                     }
++                  }
++                  _cCheckIdx_++;
++               }
++            }
+          }
+          if(_loc4_.hasDirection)
+          {
+@@ -958,16 +1039,27 @@
+          }
+          if(_loc3_ && _loc5_)
+          {
+-            --this._itemStackInHand.count;
+-            if(_loc4_.hasDirection)
+-            {
+-               _loc4_.setItemDir(param1,param2,this._blockItemDirection);
++            if(Context.multiplayer != null && Context.multiplayer.isClient)
++            {
++               Context.multiplayer.requestPlaceBlock(param1,param2,_loc4_.id,this._blockItemDirection);
+             }
+             else
+             {
+-               _loc4_.setItem(param1,param2);
+-            }
+-            game.statistics.addPlacedItem(_loc4_);
++               --this._itemStackInHand.count;
++               if(_loc4_.hasDirection)
++               {
++                  _loc4_.setItemDir(param1,param2,this._blockItemDirection);
++               }
++               else
++               {
++                  _loc4_.setItem(param1,param2);
++               }
++               game.statistics.addPlacedItem(_loc4_);
++               if(Context.multiplayer != null)
++               {
++                  Context.multiplayer.hostWorldChanged(param1,param2);
++               }
++            }
+             this._action = BUILD_ACTION;
+             this._placedItem = _loc4_;
+             this._player.handAnimation();
+@@ -1014,6 +1106,10 @@
+             {
+                this._destroy = 0;
+             }
++            if(this._destroy > 0 && Context.multiplayer != null && Context.multiplayer.isClient)
++            {
++               Context.multiplayer.requestBeginDestroy(2,param1,param2);
++            }
+          }
+       }
+ 
+@@ -1076,6 +1172,10 @@
+             {
+                this._destroy = 0;
+             }
++            if(this._destroy > 0 && Context.multiplayer != null && Context.multiplayer.isClient)
++            {
++               Context.multiplayer.requestBeginDestroy(1,param1,param2);
++            }
+          }
+       }
+ 
+@@ -1090,18 +1190,29 @@
+             this._destroyCount += this._destroy * 0.5;
+             if(this._destroyCount >= this._destructionWall.strength)
+             {
+-               world.removeWall(param1,param2,this._destructionWall);
+-               world.dropTileItem(param1,param2,this._destructionWallItem);
+-               if(param2 >= world.skyBorderTileX)
+-               {
+-                  world.setWallBedrock(param1,param2);
+-               }
+-               this._inventory.damageItem(this._itemStackInHand);
++               if(Context.multiplayer != null && Context.multiplayer.isClient)
++               {
++                  Context.multiplayer.requestRemoveWall(param1,param2);
++               }
++               else
++               {
++                  world.removeWall(param1,param2,this._destructionWall);
++                  world.dropTileItem(param1,param2,this._destructionWallItem);
++                  if(param2 >= world.skyBorderTileX)
++                  {
++                     world.setWallBedrock(param1,param2);
++                  }
++                  this._inventory.damageItem(this._itemStackInHand);
++                  game.statistics.addMinedItem(this._destructionWallItem);
++                  game.statistics.addDestroyedItem(this._destructionWallItem);
++                  if(Context.multiplayer != null)
++                  {
++                     Context.multiplayer.hostWorldChanged(param1,param2);
++                  }
++               }
+                this._action = END_DESTROY_WALL_ACTION;
+                this._destructionWallItem.showDestroyEffect(input.mouseX + screen.x,input.mouseY + screen.y);
+                this.playHitDestroySound(this._destructionWall.material);
+-               game.statistics.addMinedItem(this._destructionWallItem);
+-               game.statistics.addDestroyedItem(this._destructionWallItem);
+             }
+             else
+             {
+@@ -1114,7 +1225,7 @@
+ 
+       private function updateDestroyBlock(param1:int, param2:int) : void
+       {
+-         var _loc3_:Number = NaN;
++         var _loc3_:Number = Number(NaN);
+          var _loc4_:Boolean = false;
+          if(this._destructionPositionX != param1 || this._destructionPositionY != param2 || this._destructionTile.blockId != this._destructionBlock.id)
+          {
+@@ -1144,16 +1255,27 @@
+                {
+                   _loc4_ = false;
+                }
+-               this._destructionBlockItem.removeItem(param1,param2,this._destructionTile.blockData,_loc4_);
+-               if(this._destructionBlock.strength > 0 && this._itemStackInHand != null && this._itemStackInHand.item.destroyable)
+-               {
+-                  this._inventory.damageItem(this._itemStackInHand);
++               if(Context.multiplayer != null && Context.multiplayer.isClient)
++               {
++                  Context.multiplayer.requestRemoveBlock(param1,param2);
++               }
++               else
++               {
++                  this._destructionBlockItem.removeItem(param1,param2,this._destructionTile.blockData,_loc4_);
++                  if(this._destructionBlock.strength > 0 && this._itemStackInHand != null && this._itemStackInHand.item.destroyable)
++                  {
++                     this._inventory.damageItem(this._itemStackInHand);
++                  }
++                  game.statistics.addMinedItem(this._destructionBlockItem);
++                  game.statistics.addDestroyedItem(this._destructionBlockItem);
++                  if(Context.multiplayer != null)
++                  {
++                     Context.multiplayer.hostWorldChanged(param1,param2);
++                  }
+                }
+                this._action = END_DESTROY_BLOCK_ACTION;
+                this._destructionBlockItem.showDestroyEffect(input.mouseX + screen.x,input.mouseY + screen.y);
+                this.playHitDestroySound(this._destructionBlock.material);
+-               game.statistics.addMinedItem(this._destructionBlockItem);
+-               game.statistics.addDestroyedItem(this._destructionBlockItem);
+             }
+             else
+             {
+@@ -1175,7 +1297,7 @@
+          }
+          if(this._hurtCreature != null || this._killedCreature != null)
+          {
+-            if(this._itemInHand != null && this._itemInHand.destroyable && this._itemStackInHand.durability > 0)
++            if((Context.multiplayer == null || !Context.multiplayer.isClient) && this._itemInHand != null && this._itemInHand.destroyable && this._itemStackInHand.durability > 0)
+             {
+                this._inventory.damageItem(this._itemStackInHand);
+             }
+@@ -1394,7 +1516,7 @@
+          return true;
+       }
+ 
+-      private function canMiningByHand(param1:int) : Boolean
++      public function canMiningByHand(param1:int) : Boolean
+       {
+          if(param1 == Material.EARTH || param1 == Material.GRASS || param1 == Material.SAND || param1 == Material.PLANT || param1 == Material.WOOD || param1 == Material.LEAVES || param1 == Material.GLASS || param1 == Material.CLOTH || param1 == Material.ORGANIC)
+          {
+@@ -1403,7 +1525,7 @@
+          return false;
+       }
+ 
+-      private function canDestroyWall(param1:int, param2:int, param3:Wall) : Boolean
++      public function canDestroyWall(param1:int, param2:int, param3:Wall) : Boolean
+       {
+          if(param3.strength == Number.MAX_VALUE)
+          {
+@@ -1412,7 +1534,7 @@
+          return true;
+       }
+ 
+-      private function canDestroyBlock(param1:int, param2:int, param3:Block, param4:int) : Boolean
++      public function canDestroyBlock(param1:int, param2:int, param3:Block, param4:int) : Boolean
+       {
+          var _loc5_:Tile = null;
+          var _loc6_:Block = null;
+@@ -1653,8 +1775,8 @@
+          var _loc4_:Boolean = false;
+          var _loc5_:int = 0;
+          var _loc6_:Boolean = false;
+-         var _loc7_:Number = NaN;
+-         var _loc8_:Number = NaN;
++         var _loc7_:Number = Number(NaN);
++         var _loc8_:Number = Number(NaN);
+          var _loc9_:Boolean = false;
+          var _loc10_:int = 0;
+          var _loc11_:Boolean = false;
+@@ -1662,7 +1784,7 @@
+          var _loc13_:Boolean = false;
+          var _loc14_:Boolean = false;
+          var _loc15_:Boolean = false;
+-         var _loc16_:Number = NaN;
++         var _loc16_:Number = Number(NaN);
+          var _loc2_:int = 0;
+          for(; _loc2_ < world.creatures.length; _loc2_++)
+          {
+@@ -1685,6 +1807,14 @@
+                   if(!_loc4_)
+                   {
+                      _loc6_ = this._player.isEnemy(_loc3_);
++                     if(_loc3_ is RemotePlayerEntity && Context.multiplayer != null)
++                     {
++                        _loc6_ = Context.multiplayer.isPvpPlayerAttack(this._player,_loc3_);
++                        if(!_loc6_)
++                        {
++                           Context.multiplayer.notifyPvpBlocked();
++                        }
++                     }
+                      if(!_loc6_ && (_loc3_ is MobEntity && MobEntity(_loc3_).neutral))
+                      {
+                         _loc6_ = true;
+@@ -1742,29 +1872,37 @@
+                         this._someoneAttacked = true;
+                         this._attackedMobs.push(_loc3_);
+                         this._hurtCreature = _loc3_;
+-                        if(this._inventory.hasModifier(Ability.FLAMY))
++                        if(Context.multiplayer != null && Context.multiplayer.isClient)
+                         {
+-                           _loc16_ = this._inventory.getModifier(Ability.FLAMY);
+-                           if(Random.probability() < _loc16_)
+-                           {
+-                              _loc3_.addBuff(Buff.burn,6);
+-                           }
+-                        }
+-                        _loc10_ = this._damage;
+-                        if(Random.probability() < this._crit)
+-                        {
+-                           _loc10_ *= 2;
+-                        }
+-                        _loc3_.creatureAttacking(_loc10_,this._player);
+-                        _loc3_.addVelocity(Knockback.toVelocity(this._knockback),this._player.direction);
+-                        if(!_loc3_.alive)
+-                        {
+-                           this._killedCreature = _loc3_;
+-                           this._player.onKilledCreature(_loc3_);
++                           Context.multiplayer.requestAttack(_loc3_);
++                           this.selectedCreature = _loc3_;
+                         }
+                         else
+                         {
+-                           this.selectedCreature = _loc3_;
++                           if(this._inventory.hasModifier(Ability.FLAMY))
++                           {
++                              _loc16_ = this._inventory.getModifier(Ability.FLAMY);
++                              if(Random.probability() < _loc16_)
++                              {
++                                 _loc3_.addBuff(Buff.burn,6);
++                              }
++                           }
++                           _loc10_ = this._damage;
++                           if(Random.probability() < this._crit)
++                           {
++                              _loc10_ *= 2;
++                           }
++                           _loc3_.creatureAttacking(_loc10_,this._player);
++                           _loc3_.addVelocity(Knockback.toVelocity(this._knockback),this._player.direction);
++                           if(!_loc3_.alive)
++                           {
++                              this._killedCreature = _loc3_;
++                              this._player.onKilledCreature(_loc3_);
++                           }
++                           else
++                           {
++                              this.selectedCreature = _loc3_;
++                           }
+                         }
+                      }
+                   }
+@@ -1790,6 +1928,20 @@
+       {
+          var _loc3_:ItemStack = null;
+          var _loc6_:ItemStack = null;
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            var _locClientIndex_:int = 0;
++            while(_locClientIndex_ < this._inventory.projectiles.length)
++            {
++               _loc6_ = this._inventory.projectiles[_locClientIndex_];
++               if(_loc6_ != null && _loc6_.item is ArrowItem && ArrowItem(_loc6_.item).type == param2 && _loc6_.count > 0)
++               {
++                  return Context.multiplayer.requestShoot(input.mouseX + screen.x,input.mouseY + screen.y);
++               }
++               _locClientIndex_++;
++            }
++            return false;
++         }
+          var _loc7_:int = 0;
+          var _loc8_:ProjectileEntity = null;
+          var _loc4_:int = 0;

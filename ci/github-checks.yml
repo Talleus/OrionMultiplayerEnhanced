@@ -1,0 +1,17 @@
+name: Checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install bsdiff4==1.4.4
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q modkit tools installer

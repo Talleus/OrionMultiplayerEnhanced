@@ -1,0 +1,97 @@
+--- a/orion/ui/lobby/LobbyScreenUI.as
++++ b/orion/ui/lobby/LobbyScreenUI.as
+@@ -26,6 +26,8 @@
+ 
+       private static const PLAY_LOBBY_PAGE:int = 3;
+ 
++      private static const MULTIPLAYER_LOBBY_PAGE:int = 4;
++
+       public var _homePage:HomePageUI;
+ 
+       public var _characterPage:CharacterPageUI;
+@@ -33,6 +35,8 @@
+       private var _creditsPage:CreditsPageUI;
+ 
+       private var _playPage:PlayPageUI;
++
++      private var _multiplayerPage:MultiplayerPageUI;
+ 
+       private var _backButton:ButtonUI;
+ 
+@@ -78,6 +82,9 @@
+          this._playPage = new PlayPageUI(this);
+          this._playPage.active = false;
+          this._playPage.visible = false;
++         this._multiplayerPage = new MultiplayerPageUI(this);
++         this._multiplayerPage.active = false;
++         this._multiplayerPage.visible = false;
+          _loc1_ = new Bitmap(Images.LOBBY_PANEL_BOTTOM);
+          _loc1_.x = 0;
+          _loc1_.y = 604;
+@@ -165,13 +172,31 @@
+          this._creditsPage.visible = true;
+       }
+ 
++      public function showMultiplayerPage() : void
++      {
++         this.hideAllPages();
++         this._backButton.visible = false;
++         this._multiplayerPage.active = true;
++         this._multiplayerPage.visible = true;
++         this._multiplayerPage.onShow();
++      }
++
+       public function showPlayPage(param1:int) : void
+       {
+          this.hideAllPages();
+-         this._backButton.visible = true;
++         this._backButton.visible = false;
+          this._playPage.active = true;
+          this._playPage.visible = true;
+          this._playPage.onShow(param1);
++      }
++
++      public function showWorldsPage() : void
++      {
++         this.hideAllPages();
++         this._backButton.visible = false;
++         this._playPage.active = true;
++         this._playPage.visible = true;
++         this._playPage.onShow(0);
+       }
+ 
+       private function hideAllPages() : void
+@@ -188,10 +213,20 @@
+          this._creditsPage.visible = false;
+          this._playPage.active = false;
+          this._playPage.visible = false;
++         this._multiplayerPage.active = false;
++         this._multiplayerPage.visible = false;
+       }
+ 
+       private function _backButton_OnClick(param1:MouseEvent) : void
+       {
++         if(this._multiplayerPage != null && this._multiplayerPage.visible)
++         {
++            if(this._multiplayerPage.canGoBack())
++            {
++               this._multiplayerPage.goBack();
++               return;
++            }
++         }
+          this.showHomePage();
+       }
+ 
+@@ -227,10 +262,8 @@
+          this._homePage._mainScreen.button_start.gotoAndStop(this.getLanguageNumber(param1));
+          this._homePage._mainScreen.button_character.gotoAndStop(this.getLanguageNumber(param1));
+          this._homePage._mainScreen.button_moregames.gotoAndStop(this.getLanguageNumber(param1));
+-         this._playPage._popup.description_languages.gotoAndStop(this.getLanguageNumber(param1));
+-         this._playPage._popup.button_login.gotoAndStop(this.getLanguageNumber(param1));
+-         this._playPage._popup.button_select_local.gotoAndStop(this.getLanguageNumber(param1));
+-         this._playPage._popup.button_select_online.gotoAndStop(this.getLanguageNumber(param1));
++         this._homePage.reinitLanguage();
++         this._multiplayerPage.updateLanguage();
+       }
+ 
+       private function getLanguageNumber(param1:String) : int

@@ -1,0 +1,687 @@
+--- a/orion/ui/lobby/PlayPageUI.as
++++ b/orion/ui/lobby/PlayPageUI.as
+@@ -1,114 +1,604 @@
+ package orion.ui.lobby
+ {
++   import assets.Images;
+    import assets.Sounds;
++   import flash.display.Bitmap;
++   import flash.display.BitmapData;
+    import flash.display.DisplayObjectContainer;
+-   import flash.events.Event;
++   import flash.display.Sprite;
++   import flash.events.KeyboardEvent;
+    import flash.events.MouseEvent;
++   import flash.geom.Matrix;
++   import flash.geom.Point;
++   import flash.geom.Rectangle;
++   import flash.text.TextFormat;
++   import flash.ui.Keyboard;
++   import flash.utils.ByteArray;
++   import flash.utils.getTimer;
++   import orion.ui.UIStyle;
++   import orion.ui.base.ButtonUI;
++   import orion.ui.base.LabelUI;
+    import orion.ui.base.PanelUI;
+-
+-   public class PlayPageUI extends PanelUI
++   import orion.ui.base.TextBoxUI;
++   import utils.Base64Decoder;
++   import utils.Fonts;
++
++   public final class PlayPageUI extends PanelUI
+    {
+ 
+-      public static const FROM_START_GAME:int = 0;
+-
+-      public static const FROM_CHARACTER:int = 1;
+-
+-      public var _popup:login_popup;
+-
+-      private var _whereFrom:int;
++      private static var _gearButtonImage:BitmapData;
++
++      private static const GEAR_B64:String = "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";
++
++      private static var _modalBackground:BitmapData = null;
++
++      private var _bgPanel:Sprite;
++
++      private var _worldsTitle:LabelUI;
++
++      private var _worldButtons:Vector.<ButtonUI>;
++
++      private var _worldGearButtons:Vector.<ButtonUI>;
++
++      private var _newWorldButton:ButtonUI;
++
++      private var _deleteWorldButton:ButtonUI;
++
++      private var _renameModal:Sprite;
++
++      private var _modalPanel:Sprite;
++
++      private var _modalTitle:LabelUI;
++
++      private var _modalInput:TextBoxUI;
++
++      private var _modalSaveBtn:ButtonUI;
++
++      private var _modalCancelBtn:ButtonUI;
++
++      private var _panelBackButton:ButtonUI;
++
++      private var _modalCloseBtn:ButtonUI;
++
++      private var _editingWorldId:String = null;
++
++      private var _lastWorldClickTime:int = 0;
++
++      private var _lastWorldClickIdx:int = -1;
+ 
+       public function PlayPageUI(param1:DisplayObjectContainer, param2:int = 0, param3:int = 0)
+       {
+          super(param1,param2,param3);
+       }
+ 
++      private static function getGearButtonImage() : BitmapData
++      {
++         var dec:Base64Decoder;
++         var bytes:ByteArray;
++         if(_gearButtonImage == null)
++         {
++            try
++            {
++               dec = new Base64Decoder();
++               dec.decode(GEAR_B64);
++               bytes = dec.drain();
++               bytes.uncompress();
++               _gearButtonImage = new BitmapData(25,77,true,0);
++               _gearButtonImage.setPixels(new Rectangle(0,0,25,77),bytes);
++            }
++            catch(err:Error)
++            {
++               _gearButtonImage = Images.BUTTON_GAME_SMALL_LANGUAGE;
++            }
++         }
++         return _gearButtonImage;
++      }
++
++      private static function getPanelBackground(targetW:int = 260, targetH:int = 428) : BitmapData
++      {
++         var src:BitmapData = Images.PANEL_ERROR_BACKGROUND;
++         var bmp:BitmapData = new BitmapData(targetW,targetH,true,0);
++         var halfW:int = targetW / 2;
++         var rightW:int = targetW - halfW;
++         bmp.copyPixels(src,new Rectangle(0,0,halfW,34),new Point(0,0));
++         bmp.copyPixels(src,new Rectangle(src.width - rightW,0,rightW,34),new Point(halfW,0));
++         bmp.fillRect(new Rectangle(0,34,targetW,targetH - 44),3641995384);
++         bmp.copyPixels(src,new Rectangle(0,src.height - 10,halfW,10),new Point(0,targetH - 10));
++         bmp.copyPixels(src,new Rectangle(src.width - rightW,src.height - 10,rightW,10),new Point(halfW,targetH - 10));
++         return bmp;
++      }
++
++      private static function getModalBackground() : BitmapData
++      {
++         if(_modalBackground != null)
++         {
++            return _modalBackground;
++         }
++         var targetW:int = 410;
++         var targetH:int = 214;
++         var srcErr:BitmapData = Images.PANEL_ERROR_BACKGROUND;
++         _modalBackground = new BitmapData(targetW,targetH,true,0);
++         var halfW:int = targetW / 2;
++         var rightW:int = targetW - halfW;
++         var headerH:int = 36;
++         var shelfY:int = 138;
++         var capBot:int = 10;
++         _modalBackground.copyPixels(srcErr,new Rectangle(0,0,halfW,10),new Point(0,0));
++         _modalBackground.copyPixels(srcErr,new Rectangle(srcErr.width - rightW,0,rightW,10),new Point(halfW,0));
++         var topFillH:int = headerH - 10;
++         if(topFillH > 0)
++         {
++            var mTopShelf:Matrix = new Matrix();
++            mTopShelf.scale(1,topFillH / 30);
++            mTopShelf.translate(0,10);
++            var bmpTopShelf:BitmapData = new BitmapData(targetW,30,true,0);
++            bmpTopShelf.copyPixels(srcErr,new Rectangle(0,260,targetW,30),new Point(0,0));
++            _modalBackground.draw(bmpTopShelf,mTopShelf,null,null,new Rectangle(0,10,targetW,topFillH),true);
++            bmpTopShelf.dispose();
++         }
++         var ty:int = 4;
++         while(ty < 10)
++         {
++            var tx:int = 10;
++            while(tx < targetW - 10)
++            {
++               if(_modalBackground.getPixel32(tx,ty) >>> 24 > 0)
++               {
++                  _modalBackground.setPixel32(tx,ty,4278219378);
++               }
++               tx++;
++            }
++            ty++;
++         }
++         _modalBackground.copyPixels(srcErr,new Rectangle(0,254,halfW,3),new Point(0,headerH));
++         _modalBackground.copyPixels(srcErr,new Rectangle(srcErr.width - rightW,254,rightW,3),new Point(halfW,headerH));
++         var bodyH:int = shelfY - (headerH + 3);
++         if(bodyH > 0)
++         {
++            _modalBackground.fillRect(new Rectangle(0,headerH + 3,targetW,bodyH),4278198304);
++            var bmpBorderL:BitmapData = new BitmapData(16,bodyH,true,0);
++            var mBorderL:Matrix = new Matrix();
++            mBorderL.scale(1,bodyH / 100);
++            var srcBorderL:BitmapData = new BitmapData(16,100,true,0);
++            srcBorderL.copyPixels(srcErr,new Rectangle(0,50,16,100),new Point(0,0));
++            bmpBorderL.draw(srcBorderL,mBorderL);
++            _modalBackground.copyPixels(bmpBorderL,new Rectangle(0,0,16,bodyH),new Point(0,headerH + 3));
++            srcBorderL.dispose();
++            bmpBorderL.dispose();
++            var bmpBorderR:BitmapData = new BitmapData(16,bodyH,true,0);
++            var mBorderR:Matrix = new Matrix();
++            mBorderR.scale(1,bodyH / 100);
++            var srcBorderR:BitmapData = new BitmapData(16,100,true,0);
++            srcBorderR.copyPixels(srcErr,new Rectangle(srcErr.width - 16,50,16,100),new Point(0,0));
++            bmpBorderR.draw(srcBorderR,mBorderR);
++            _modalBackground.copyPixels(bmpBorderR,new Rectangle(0,0,16,bodyH),new Point(targetW - 16,headerH + 3));
++            srcBorderR.dispose();
++            bmpBorderR.dispose();
++         }
++         _modalBackground.copyPixels(srcErr,new Rectangle(0,254,halfW,3),new Point(0,shelfY));
++         _modalBackground.copyPixels(srcErr,new Rectangle(srcErr.width - rightW,254,rightW,3),new Point(halfW,shelfY));
++         var shelfFillH:int = targetH - shelfY - 3 - capBot;
++         if(shelfFillH > 0)
++         {
++            var mShelf:Matrix = new Matrix();
++            mShelf.scale(1,shelfFillH / 30);
++            mShelf.translate(0,shelfY + 3);
++            var bmpShelf:BitmapData = new BitmapData(targetW,30,true,0);
++            bmpShelf.copyPixels(srcErr,new Rectangle(0,260,targetW,30),new Point(0,0));
++            _modalBackground.draw(bmpShelf,mShelf,null,null,new Rectangle(0,shelfY + 3,targetW,shelfFillH),true);
++            bmpShelf.dispose();
++         }
++         _modalBackground.copyPixels(srcErr,new Rectangle(0,srcErr.height - capBot,halfW,capBot),new Point(0,targetH - capBot));
++         _modalBackground.copyPixels(srcErr,new Rectangle(srcErr.width - rightW,srcErr.height - capBot,rightW,capBot),new Point(halfW,targetH - capBot));
++         var py:int = 0;
++         while(py < targetH)
++         {
++            var px:int = 0;
++            while(px < targetW)
++            {
++               var col:uint = _modalBackground.getPixel32(px,py);
++               if(col >>> 24 > 20)
++               {
++                  _modalBackground.setPixel32(px,py,0xFF000000 | col & 0xFFFFFF);
++               }
++               px++;
++            }
++            py++;
++         }
++         return _modalBackground;
++      }
++
+       override protected function addChildren() : void
+       {
++         var ru:Boolean = Context.app._choosedLanguage == "ru";
+          super.addChildren();
+-         this._popup = new login_popup();
+-         addChild(this._popup);
++         this._bgPanel = new Sprite();
++         this._bgPanel.mouseEnabled = false;
++         this._bgPanel.addChild(new Bitmap(getPanelBackground(260,484)));
++         addChild(this._bgPanel);
++         this._worldsTitle = new LabelUI(this).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setVerticalAlign(LabelUI.MIDDLE_ALIGN).setText(ru ? "МИРЫ" : "WORLDS").setFont(Fonts.ZANTROKE,24,16777215).addFilter(UIStyle.BLACK_STROKE_FILTER).addFilter(UIStyle.BLACK_SHADOW_FILTER).setSize(260,34) as LabelUI;
++         this._worldButtons = new Vector.<ButtonUI>(5,true);
++         this._worldGearButtons = new Vector.<ButtonUI>(5,true);
++         var i:int = 0;
++         while(i < 5)
++         {
++            this._worldButtons[i] = new ButtonUI(this).setTextFont(Fonts.ZANTROKE,14,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
++            this._worldButtons[i].tag = i;
++            this._worldButtons[i].mouseChildren = false;
++            this._worldGearButtons[i] = new ButtonUI(this).setImage(getGearButtonImage()).setSize(25,25) as ButtonUI;
++            this._worldGearButtons[i].tag = i;
++            this._worldGearButtons[i].mouseChildren = false;
++            this._worldGearButtons[i].visible = false;
++            i++;
++         }
++         this._newWorldButton = new ButtonUI(this).setText(ru ? "+ НОВЫЙ МИР" : "+ NEW WORLD").setTextFont(Fonts.ZANTROKE,14,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
++         this._deleteWorldButton = new ButtonUI(this).setText(ru ? "УДАЛИТЬ МИР" : "DELETE WORLD").setTextFont(Fonts.ZANTROKE,14,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
++         this._panelBackButton = new ButtonUI(this).setText(ru ? "НАЗАД" : "BACK").setTextFont(Fonts.ZANTROKE,14,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
++         this._renameModal = new Sprite();
++         this._renameModal.visible = false;
++         addChild(this._renameModal);
++         this._modalPanel = new Sprite();
++         this._renameModal.addChild(this._modalPanel);
++         var modalBg:Bitmap = new Bitmap(getModalBackground());
++         this._modalPanel.addChild(modalBg);
++         this._modalTitle = new LabelUI(this._modalPanel,0,2).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setVerticalAlign(LabelUI.MIDDLE_ALIGN).setText(ru ? "ПЕРЕИМЕНОВАТЬ МИР" : "RENAME WORLD").setFont(Fonts.ZANTROKE,20,16777215).addFilter(UIStyle.BLACK_STROKE_FILTER).setSize(410,32) as LabelUI;
++         this._modalInput = new TextBoxUI(this._modalPanel,45,74).setMaxLength(22).setSize(320,36) as TextBoxUI;
++         this._modalInput.textField.embedFonts = false;
++         this._modalInput.textField.textColor = 16777215;
++         var mFmt:TextFormat = new TextFormat("Verdana",15,16777215);
++         this._modalInput.textField.defaultTextFormat = mFmt;
++         this._modalInput.textField.setTextFormat(mFmt);
++         this._modalSaveBtn = new ButtonUI(this._modalPanel,110,146).setText(ru ? "ПЕРЕИМЕНОВАТЬ" : "RENAME").setTextFont(Fonts.ZANTROKE,16,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
++         this._modalCloseBtn = new ButtonUI(this._modalPanel,382,-2).setImage(Images.BUTTON_GAME_INVENTORY_EXIT).setSize(29,28) as ButtonUI;
++         if(this.stage != null)
++         {
++            this.setSize(this.stage.stageWidth,this.stage.stageHeight);
++            this.updatePosition();
++         }
++      }
++
++      public function onShow(param1:int) : void
++      {
++         this.refreshWorlds();
++      }
++
++      private function refreshWorlds() : void
++      {
++         var _loc5_:int = 0;
++         var ru:Boolean = Context.app._choosedLanguage == "ru";
++         if(this._panelBackButton != null)
++         {
++            this._panelBackButton.text = ru ? "НАЗАД" : "BACK";
++         }
++         var worlds:Array = Context.app.getSingleWorlds();
++         var selected:Object = Context.app.getSelectedSingleWorld();
++         if(selected == null && worlds != null && worlds.length > 0)
++         {
++            selected = worlds[0];
++            Context.app.selectSingleWorld(String(selected.id));
++         }
++         if(this._worldsTitle != null)
++         {
++            this._worldsTitle.text = ru ? "МИРЫ" : "WORLDS";
++         }
++         if(this._newWorldButton != null)
++         {
++            this._newWorldButton.text = ru ? "+ НОВЫЙ МИР" : "+ NEW WORLD";
++         }
++         if(this._deleteWorldButton != null)
++         {
++            this._deleteWorldButton.text = ru ? "УДАЛИТЬ МИР" : "DELETE WORLD";
++            this._deleteWorldButton.enabled = worlds.length > 1;
++         }
++         _loc5_ = 0;
++         while(this._worldButtons != null && _loc5_ < this._worldButtons.length)
++         {
++            if(_loc5_ < worlds.length)
++            {
++               var w:Object = worlds[_loc5_];
++               var nm:String = String(w.name).toUpperCase();
++               if(ru && (nm == "WORLD 1" || nm == "МИР 1" || w.name == "Мир 1"))
++               {
++                  w.name = "МИР 1";
++               }
++               else if(ru && (nm == "WORLD 2" || nm == "МИР 2" || w.name == "Мир 2"))
++               {
++                  w.name = "МИР 2";
++               }
++               else if(ru && (nm == "WORLD 3" || nm == "МИР 3" || w.name == "Мир 3"))
++               {
++                  w.name = "МИР 3";
++               }
++               else if(ru && (nm == "WORLD 4" || nm == "МИР 4" || w.name == "Мир 4"))
++               {
++                  w.name = "МИР 4";
++               }
++               else if(ru && (nm == "WORLD 5" || nm == "МИР 5" || w.name == "Мир 5"))
++               {
++                  w.name = "МИР 5";
++               }
++               var prefix:String = selected != null && selected.id == w.id ? "> " : "";
++               this._worldButtons[_loc5_].text = prefix + (_loc5_ + 1) + ": " + String(w.name).toUpperCase();
++               this._worldButtons[_loc5_].enabled = true;
++               this._worldButtons[_loc5_].visible = true;
++               if(this._worldGearButtons != null && _loc5_ < this._worldGearButtons.length)
++               {
++                  this._worldGearButtons[_loc5_].visible = true;
++                  this._worldGearButtons[_loc5_].enabled = true;
++               }
++            }
++            else
++            {
++               this._worldButtons[_loc5_].text = ru ? "(ПУСТО)" : "(EMPTY)";
++               this._worldButtons[_loc5_].enabled = false;
++               this._worldButtons[_loc5_].visible = true;
++               if(this._worldGearButtons != null && _loc5_ < this._worldGearButtons.length)
++               {
++                  this._worldGearButtons[_loc5_].visible = false;
++                  this._worldGearButtons[_loc5_].enabled = false;
++               }
++            }
++            _loc5_++;
++         }
++      }
++
++      private function _worldButton_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         var idx:int = int(param1.currentTarget.tag);
++         var worlds:Array = Context.app.getSingleWorlds();
++         if(idx >= 0 && idx < worlds.length)
++         {
++            var now:int = getTimer();
++            var isDouble:Boolean = this._lastWorldClickIdx == idx && now - this._lastWorldClickTime < 500;
++            this._lastWorldClickTime = now;
++            this._lastWorldClickIdx = idx;
++            Context.app.selectSingleWorld(String(worlds[idx].id));
++            this.refreshWorlds();
++            if(isDouble)
++            {
++               this._lastWorldClickIdx = -1;
++               this._lastWorldClickTime = 0;
++               Context.app.startGame();
++            }
++         }
++      }
++
++      private function _gearButton_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         var idx:int = int(param1.currentTarget.tag);
++         var worlds:Array = Context.app.getSingleWorlds();
++         if(idx >= 0 && idx < worlds.length)
++         {
++            var w:Object = worlds[idx];
++            this._editingWorldId = String(w.id);
++            this.openRenameModal(String(w.name));
++         }
++      }
++
++      private function openRenameModal(currentName:String) : void
++      {
++         if(this._renameModal == null || this._modalInput == null)
++         {
++            return;
++         }
++         this._modalInput.text = currentName;
++         if(this._modalSaveBtn != null)
++         {
++            this._modalSaveBtn.text = Context.app._choosedLanguage == "ru" ? "ПЕРЕИМЕНОВАТЬ" : "RENAME";
++         }
++         this._renameModal.visible = true;
+          this.updatePosition();
++         if(this.stage != null)
++         {
++            this.stage.focus = this._modalInput.textField;
++            this._modalInput.textField.setSelection(0,this._modalInput.text.length);
++         }
++      }
++
++      private function closeRenameModal() : void
++      {
++         if(this._renameModal != null)
++         {
++            this._renameModal.visible = false;
++         }
++         this._editingWorldId = null;
++         if(this.stage != null)
++         {
++            this.stage.focus = null;
++         }
++      }
++
++      private function _modalSave_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         if(this._editingWorldId != null && this._modalInput != null)
++         {
++            var newName:String = this._modalInput.text.replace(/^\s+|\s+$/g,"");
++            if(newName.length > 0)
++            {
++               Context.app.renameSingleWorld(this._editingWorldId,newName);
++               refreshWorlds();
++            }
++         }
++         closeRenameModal();
++      }
++
++      private function _modalCancel_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         closeRenameModal();
++      }
++
++      private function _modalInput_OnKeyDown(param1:KeyboardEvent) : void
++      {
++         if(param1.keyCode == Keyboard.ENTER)
++         {
++            this._modalSave_OnClick(null);
++         }
++         else if(param1.keyCode == Keyboard.ESCAPE)
++         {
++            this._modalCancel_OnClick(null);
++         }
++      }
++
++      private function _newWorldButton_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         var w:Object = Context.app.createSingleWorld(null);
++         if(w == null)
++         {
++            Context.app.showOk(Context.app._choosedLanguage == "ru" ? "МАКСИМУМ 5 МИРОВ" : "MAX 5 WORLDS");
++            return;
++         }
++         Context.app.startGame();
++      }
++
++      private function _panelBackButton_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         if(Context.app != null && Context.app.lobby != null)
++         {
++            Context.app.lobby.showHomePage();
++         }
++      }
++
++      private function _deleteWorldButton_OnClick(param1:MouseEvent) : void
++      {
++         var worlds:Array;
++         var sel:Object;
++         var ru:Boolean;
++         playSound(Sounds.BUTTON_CLICK);
++         worlds = Context.app.getSingleWorlds();
++         if(worlds.length <= 1)
++         {
++            return;
++         }
++         sel = Context.app.getSelectedSingleWorld();
++         if(sel == null)
++         {
++            return;
++         }
++         ru = Context.app._choosedLanguage == "ru";
++         Context.app.showConfirm(ru ? "УДАЛИТЬ" : "DELETE",ru ? "Удалить мир \"" + String(sel.name) + "\" вместе с сохранением?" : "Delete world \"" + String(sel.name) + "\" with its save?",function(ok:Boolean):void
++         {
++            if(ok)
++            {
++               Context.app.deleteSingleWorld(String(sel.id));
++               refreshWorlds();
++            }
++         });
+       }
+ 
+       override protected function addEventListeners() : void
+       {
+          super.addEventListeners();
+-         this._popup.button_login.addEventListener(MouseEvent.CLICK,this.buttonLogin_OnClick);
+-         this._popup.button_select_online.addEventListener(MouseEvent.CLICK,this.buttonSelectOnline_OnClick);
+-         this._popup.button_select_local.addEventListener(MouseEvent.CLICK,this.buttonSelectLocal_OnClick);
++         var i:int = 0;
++         while(this._worldButtons != null && i < this._worldButtons.length)
++         {
++            this._worldButtons[i].addEventListener(MouseEvent.CLICK,this._worldButton_OnClick);
++            if(this._worldGearButtons != null && i < this._worldGearButtons.length)
++            {
++               this._worldGearButtons[i].addEventListener(MouseEvent.CLICK,this._gearButton_OnClick);
++            }
++            i++;
++         }
++         this._panelBackButton.addEventListener(MouseEvent.CLICK,this._panelBackButton_OnClick);
++         this._newWorldButton.addEventListener(MouseEvent.CLICK,this._newWorldButton_OnClick);
++         this._deleteWorldButton.addEventListener(MouseEvent.CLICK,this._deleteWorldButton_OnClick);
++         this._modalSaveBtn.addEventListener(MouseEvent.CLICK,this._modalSave_OnClick);
++         this._modalCloseBtn.addEventListener(MouseEvent.CLICK,this._modalCancel_OnClick);
++         this._modalInput.addEventListener(KeyboardEvent.KEY_DOWN,this._modalInput_OnKeyDown);
+       }
+ 
+       override protected function removeEventListeners() : void
+       {
+          super.removeEventListeners();
+-         this._popup.button_login.removeEventListener(MouseEvent.CLICK,this.buttonLogin_OnClick);
+-         this._popup.button_select_online.removeEventListener(MouseEvent.CLICK,this.buttonSelectOnline_OnClick);
+-         this._popup.button_select_local.removeEventListener(MouseEvent.CLICK,this.buttonSelectLocal_OnClick);
+-      }
+-
+-      public function onShow(param1:int) : void
+-      {
+-         this._whereFrom = param1;
+-         this.checkIfLogged();
+-      }
+-
+-      private function checkIfLogged() : Boolean
+-      {
+-         return false;
+-      }
+-
+-      private function doAction() : void
+-      {
+-         Context.app.lobby._homePage._gameSlotWasChoised = true;
+-         if(this._whereFrom == FROM_START_GAME)
+-         {
+-            Context.app.startGame();
+-         }
+-         else if(this._whereFrom == FROM_CHARACTER)
+-         {
+-            Context.app.loadPlayerData(function():void
+-            {
+-               Context.app.lobby.showCharacterPage();
+-            });
+-         }
+-      }
+-
+-      private function idi_OnLogged(param1:Event) : void
+-      {
+-         this.checkIfLogged();
+-      }
+-
+-      private function buttonLogin_OnClick(param1:Event) : void
+-      {
+-         if(this.checkIfLogged())
++         var i:int = 0;
++         while(this._worldButtons != null && i < this._worldButtons.length)
++         {
++            this._worldButtons[i].removeEventListener(MouseEvent.CLICK,this._worldButton_OnClick);
++            if(this._worldGearButtons != null && i < this._worldGearButtons.length)
++            {
++               this._worldGearButtons[i].removeEventListener(MouseEvent.CLICK,this._gearButton_OnClick);
++            }
++            i++;
++         }
++         this._panelBackButton.removeEventListener(MouseEvent.CLICK,this._panelBackButton_OnClick);
++         this._newWorldButton.removeEventListener(MouseEvent.CLICK,this._newWorldButton_OnClick);
++         this._deleteWorldButton.removeEventListener(MouseEvent.CLICK,this._deleteWorldButton_OnClick);
++         this._modalSaveBtn.removeEventListener(MouseEvent.CLICK,this._modalSave_OnClick);
++         this._modalCloseBtn.removeEventListener(MouseEvent.CLICK,this._modalCancel_OnClick);
++         this._modalInput.removeEventListener(KeyboardEvent.KEY_DOWN,this._modalInput_OnKeyDown);
++      }
++
++      override protected function onStageResize() : void
++      {
++         this.updatePosition();
++      }
++
++      private function updatePosition() : void
++      {
++         if(this.stage == null)
+          {
+             return;
+          }
+-      }
+-
+-      private function buttonSelectOnline_OnClick(param1:Event) : void
+-      {
+-         playSound(Sounds.BUTTON_CLICK);
+-         Context.savingType = SavingType.ONLINE;
+-         this.doAction();
+-      }
+-
+-      private function buttonSelectLocal_OnClick(param1:Event) : void
+-      {
+-         playSound(Sounds.BUTTON_CLICK);
+-         Context.savingType = SavingType.LOCAL;
+-         this.doAction();
+-      }
+-
+-      override protected function onStageResize() : void
+-      {
+-         this.updatePosition();
+-      }
+-
+-      private function updatePosition() : void
+-      {
+-         this._popup.x = stage.stageWidth * (400 / 800) - 400;
+-         this._popup.y = stage.stageHeight * (330 / 800) - 265;
++         this.setSize(this.stage.stageWidth,this.stage.stageHeight);
++         var panelW:Number = 260;
++         var panelH:Number = 484;
++         var panelX:Number = Math.max(10,(this.stage.stageWidth - panelW) * 0.5);
++         var panelY:Number = Math.max(10,(this.stage.stageHeight - panelH) * 0.5);
++         if(this._bgPanel != null)
++         {
++            this._bgPanel.x = panelX;
++            this._bgPanel.y = panelY;
++         }
++         if(this._worldsTitle != null)
++         {
++            this._worldsTitle.x = panelX;
++            this._worldsTitle.y = panelY + 4;
++            this._worldsTitle.setSize(panelW,34);
++         }
++         var bx:Number = panelX + 15;
++         var i:int = 0;
++         while(this._worldButtons != null && i < this._worldButtons.length)
++         {
++            this._worldButtons[i].x = bx;
++            this._worldButtons[i].y = panelY + 46 + i * 53;
++            if(this._worldGearButtons != null && i < this._worldGearButtons.length)
++            {
++               this._worldGearButtons[i].x = bx + 190 + 7;
++               this._worldGearButtons[i].y = panelY + 46 + i * 53 + 12;
++            }
++            i++;
++         }
++         if(this._newWorldButton != null)
++         {
++            this._newWorldButton.x = bx;
++            this._newWorldButton.y = panelY + 46 + 5 * 53;
++         }
++         if(this._deleteWorldButton != null)
++         {
++            this._deleteWorldButton.x = bx;
++            this._deleteWorldButton.y = panelY + 46 + 6 * 53;
++         }
++         if(this._panelBackButton != null)
++         {
++            this._panelBackButton.x = bx;
++            this._panelBackButton.y = panelY + 46 + 7 * 53;
++         }
++         if(this._renameModal != null && this._modalPanel != null)
++         {
++            this._renameModal.graphics.clear();
++            this._renameModal.graphics.beginFill(0,0.5);
++            this._renameModal.graphics.drawRect(0,0,this.stage.stageWidth,this.stage.stageHeight);
++            this._renameModal.graphics.endFill();
++            var mX:Number = (this.stage.stageWidth - 410) * 0.5;
++            var mY:Number = (this.stage.stageHeight - 214) * 0.5;
++            this._modalPanel.x = mX;
++            this._modalPanel.y = mY;
++         }
+       }
+    }
+ }

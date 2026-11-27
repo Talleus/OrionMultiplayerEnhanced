@@ -1,0 +1,44 @@
+--- a/orion/ui/game/player_dialog/FurnacePanelUI.as
++++ b/orion/ui/game/player_dialog/FurnacePanelUI.as
+@@ -4,6 +4,7 @@
+    import flash.display.*;
+    import flash.events.*;
+    import flash.utils.*;
++   import orion.*;
+    import orion.ui.*;
+    import orion.ui.base.*;
+    import orion.ui.game.*;
+@@ -83,6 +84,10 @@
+       public function setItem(param1:ItemViewerUI, param2:ItemStack) : void
+       {
+          this.furnace.items[param1.index] = param2;
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            Context.multiplayer.notifyTileInventoryLayoutChanged(this.furnace);
++         }
+       }
+ 
+       public function getItem(param1:int) : ItemStack
+@@ -146,8 +151,8 @@
+ 
+       override protected function draw() : void
+       {
+-         var _loc1_:Number = NaN;
+-         var _loc2_:Number = NaN;
++         var _loc1_:Number = Number(NaN);
++         var _loc2_:Number = Number(NaN);
+          super.draw();
+          if(this.furnace.fuelBurnTime != 0)
+          {
+@@ -166,7 +171,10 @@
+ 
+       private function _timerUpdateFurnace_OnTimer(param1:TimerEvent) : void
+       {
+-         this._furnace.update(1);
++         if(Context.multiplayer == null || !Context.multiplayer.isClient)
++         {
++            this._furnace.update(1);
++         }
+          this.update();
+       }
+    }

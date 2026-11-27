@@ -1,0 +1,35 @@
+--- a/orion/data/LocalDataProvider.as
++++ b/orion/data/LocalDataProvider.as
+@@ -44,14 +44,28 @@
+ 
+       public static function setGameData(param1:Object, param2:ByteArray) : void
+       {
++         var _loc5_:String = null;
++         var _loc6_:SharedObject = null;
+          var _loc3_:SharedObject = SharedObject.getLocal("player");
+          _loc3_.data.player = param1;
+          _loc3_.flush();
+          _loc3_.close();
+-         var _loc4_:SharedObject = SharedObject.getLocal("world");
+-         _loc4_.data.world = param2;
+-         _loc4_.flush();
+-         _loc4_.close();
++         var _loc4_:String = Context.app != null ? Context.app._activeSingleWorldId : null;
++         if(_loc4_ != null && _loc4_.length > 0 && (Context.multiplayer == null || !Context.multiplayer.active))
++         {
++            _loc5_ = "orion_single_world_" + _loc4_.replace(/[^a-zA-Z0-9_-]/g,"_");
++            _loc6_ = SharedObject.getLocal(_loc5_);
++            _loc6_.data.world = param2;
++            _loc6_.flush();
++            _loc6_.close();
++         }
++         else
++         {
++            _loc6_ = SharedObject.getLocal("world");
++            _loc6_.data.world = param2;
++            _loc6_.flush();
++            _loc6_.close();
++         }
+       }
+ 
+       public static function setGameDataPlayer(param1:Object) : void

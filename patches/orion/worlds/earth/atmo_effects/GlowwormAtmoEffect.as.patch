@@ -1,0 +1,20 @@
+--- a/orion/worlds/earth/atmo_effects/GlowwormAtmoEffect.as
++++ b/orion/worlds/earth/atmo_effects/GlowwormAtmoEffect.as
+@@ -21,7 +21,7 @@
+       public function GlowwormAtmoEffect()
+       {
+          super();
+-         this._glowTween = new SimpleTween().setLoop(true).setYoyo(true).setDuration(0.6).setValueRange(0.5,1).setEasyCallback(Sine.easeInOut);
++         this._glowTween = new SimpleTween().setLoop(true).setYoyo(true).setDuration(0.8).setValueRange(0.4,1).setEasyCallback(Sine.easeInOut);
+          var _loc1_:TextureAtlas = atlases.getAtlas("effects");
+          this._texture = _loc1_.textures["glowworm"];
+          _origin.x = this._texture.width * 0.5;
+@@ -53,7 +53,7 @@
+          super.create(param1,param2);
+          this._tileX = param1;
+          this._tileY = param2;
+-         _maxScale = 1;
++         _maxScale = 1.15;
+          this._glowTween.reset();
+       }
+    }

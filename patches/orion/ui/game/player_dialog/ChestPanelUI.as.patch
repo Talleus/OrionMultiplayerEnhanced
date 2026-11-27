@@ -1,0 +1,56 @@
+--- a/orion/ui/game/player_dialog/ChestPanelUI.as
++++ b/orion/ui/game/player_dialog/ChestPanelUI.as
+@@ -18,6 +18,8 @@
+       private var _itemsChangedSignal:Signal = new Signal();
+ 
+       private var _items:Vector.<ItemStack>;
++
++      private var _chest:BaseChestTileEntity;
+ 
+       private var _takeAll:ButtonUI;
+ 
+@@ -41,6 +43,10 @@
+       public function setItem(param1:ItemViewerUI, param2:ItemStack) : void
+       {
+          this._items[param1.index] = param2;
++         if(Context.multiplayer != null && Context.multiplayer.isClient && this._chest != null)
++         {
++            Context.multiplayer.notifyChestLayoutChanged(this._chest);
++         }
+       }
+ 
+       public function getItem(param1:int) : ItemStack
+@@ -65,7 +71,7 @@
+             _loc2_ = new ItemViewerUI(this);
+             _loc2_.setIndex(_loc1_);
+             _loc2_.x = 49 + 32 * (_loc1_ % 6) + 2 * (_loc1_ % 6);
+-            _loc2_.y = 76 + 32 * int(_loc1_ / 6) + 2 * int(_loc1_ / 6);
++            _loc2_.y = 76 + 32 * (int(_loc1_ / 6)) + 2 * (int(_loc1_ / 6));
+             this._itemsViewers[_loc1_] = _loc2_;
+             _loc1_++;
+          }
+@@ -82,6 +88,13 @@
+       {
+          super.removeEventListeners();
+          this._takeAll.removeEventListener(MouseEvent.CLICK,this._takeAll_OnClick);
++      }
++
++      public function setChest(param1:BaseChestTileEntity) : void
++      {
++         this._chest = param1;
++         this._items = param1.items;
++         invalidate();
+       }
+ 
+       public function setChestItems(param1:Vector.<ItemStack>) : void
+@@ -116,6 +129,10 @@
+             _loc3_++;
+          }
+          this._itemsChangedSignal.dispatch();
++         if(Context.multiplayer != null && Context.multiplayer.isClient && this._chest != null)
++         {
++            Context.multiplayer.notifyChestLayoutChanged(this._chest);
++         }
+       }
+    }
+ }

@@ -1,0 +1,2406 @@
+--- a/orion/ui/game/GameScreenUI.as
++++ b/orion/ui/game/GameScreenUI.as
+@@ -3,10 +3,20 @@
+    import assets.*;
+    import flash.display.*;
+    import flash.events.*;
+-   import flash.utils.Timer;
++   import flash.filters.GlowFilter;
++   import flash.geom.*;
++   import flash.net.SharedObject;
++   import flash.text.AntiAliasType;
++   import flash.text.TextField;
++   import flash.text.TextFieldAutoSize;
++   import flash.text.TextFieldType;
++   import flash.text.TextFormat;
++   import flash.ui.Keyboard;
++   import flash.utils.*;
+    import orion.*;
+    import orion.achievs.*;
+    import orion.events.*;
++   import orion.multiplayer.MultiplayerManager;
+    import orion.quests.*;
+    import orion.tutorial.*;
+    import orion.ui.*;
+@@ -16,12 +26,51 @@
+    import orion.ui.game.tutorial.*;
+    import orion.ui.general.*;
+    import orion.worlds.*;
++   import orion.worlds.blocks.*;
+    import orion.worlds.entities.*;
++   import orion.worlds.items.*;
+    import utils.*;
+ 
+    public class GameScreenUI extends ScreenUI
+    {
+ 
++      private static const MAP_FOG_COLOR:uint = 197637;
++
++      private static const MINI_MAP_WIDTH:int = 250;
++
++      private static const MINI_MAP_HEIGHT:int = 176;
++
++      private static const AVAILABLE_COMMANDS:Array = ["/help","/list","/ops","/op","/deop","/give","/xp","/level","/heal","/kill","/kick","/ban","/unban","/pvp","/tp","/tphere","/spawn","/time","/gamerule","/say","/save-all","/xray","/invsee","/item","/clear","/repair"];
++
++      private static const COMMAND_USAGE:Object = {
++         "/help":"/help [1..4]",
++         "/list":"/list",
++         "/ops":"/ops",
++         "/op":"/op <игрок>",
++         "/deop":"/deop <игрок>",
++         "/give":"/give <игрок> <ID> [кол-во]",
++         "/xp":"/xp <игрок> <опыт>",
++         "/level":"/level <игрок> <уровень|+N|-N>",
++         "/heal":"/heal [игрок]",
++         "/kill":"/kill [игрок]",
++         "/kick":"/kick <игрок> [причина]",
++         "/ban":"/ban <игрок> [причина]",
++         "/unban":"/unban <ник|ip>",
++         "/pvp":"/pvp [on|off]",
++         "/tp":"/tp <цель> | /tp [игрок] <x|~> <y|~>",
++         "/tphere":"/tphere <игрок>",
++         "/spawn":"/spawn [игрок]",
++         "/time":"/time set <day|noon|night|midnight|0..1439>",
++         "/gamerule":"/gamerule <doDaylightCycle|doMobSpawning> <true|false>",
++         "/say":"/say <сообщение>",
++         "/save-all":"/save-all",
++         "/xray":"/xray [игрок] [on|off]",
++         "/invsee":"/invsee <игрок> [страница] — ХОСТ",
++         "/item":"/item <игрок> <слот 1..45> <ID|air> [кол-во] — ХОСТ",
++         "/clear":"/clear [игрок] [ID] — ХОСТ",
++         "/repair":"/repair [игрок] — ХОСТ"
++      };
++
+       public var _topPanel:TopPanelUI;
+ 
+       protected var _bottomPanel:BottomPanelUI;
+@@ -53,6 +102,98 @@
+       protected var _notifyBookTravelerButton:ButtonUI;
+ 
+       protected var _notifyLighting:LightingIconUI;
++
++      private var _hostStopButton:ButtonUI;
++
++      private var _pvpButton:Sprite;
++
++      private var _pvpButtonLabel:TextField;
++
++      private var _mapButton:Sprite;
++
++      private var _mapButtonLabel:TextField;
++
++      private var _miniMapBitmap:Bitmap;
++
++      private var _miniMapMarkers:Sprite;
++
++      private var _miniPlayerIcon:Bitmap;
++
++      private var _fullPlayerIcon:Bitmap;
++
++      private var _playerMapIconData:BitmapData;
++
++      private var _playerNeedsIconRefresh:Boolean = true;
++
++      private var _lastPlayerHair:int = -999;
++
++      private var _lastPlayerHead:int = -999;
++
++      private var _lastPlayerColor:int = -999;
++
++      private var _lastPlayerGender:Boolean = false;
++
++      private var _remotePlayerMapIcons:Dictionary = new Dictionary();
++
++      private var _miniMapCoordinates:TextField;
++
++      private var _miniMapDiscovery:TextField;
++
++      private var _mapOverlay:Sprite;
++
++      private var _mapBitmap:Bitmap;
++
++      private var _mapMarkers:Sprite;
++
++      private var _mapTitle:TextField;
++
++      private var _mapOpen:Boolean = false;
++
++      private var _mapData:BitmapData;
++
++      private var _mapVisited:ByteArray;
++
++      private var _mapStorageKey:String;
++
++      private var _treeBlockIds:Object;
++
++      private var _lastMapTileX:int = -100000;
++
++      private var _lastMapTileY:int = -100000;
++
++      private var _lastMapSaveTime:int;
++
++      private var _mapRevealedCount:int;
++
++      private var _mapZoom:Number = 1;
++
++      private var _gameChatPanel:Sprite;
++
++      private var _gameChatHistoryBackground:Sprite;
++
++      private var _gameChatInputBackground:Sprite;
++
++      private var _gameChatHistory:TextField;
++
++      private var _gameChatInput:TextField;
++
++      private var _gameChatFadeTimer:Timer;
++
++      private var _gameChatOpen:Boolean = false;
++
++      private var _gameChatMessages:Array = [];
++
++      private var _commandHintPanel:Sprite;
++
++      private var _commandHintText:TextField;
++
++      private var _xrayOverlay:Sprite;
++
++      private var _mapTooltip:Sprite;
++
++      private var _mapTooltipText:TextField;
++
++      private var _gameChatTypingLabel:TextField;
+ 
+       public function GameScreenUI(param1:DisplayObjectContainer)
+       {
+@@ -72,12 +213,19 @@
+          this._notifyWarehouseButton.visible = false;
+          this._notifyBookTravelerButton.visible = true;
+          this.positionNotifyButtons();
++         this.updateHostStopButton();
++         this.updateGameChatAvailability();
+       }
+ 
+       override protected function addChildren() : void
+       {
+          var _loc2_:BuffViewerUI = null;
+          super.addChildren();
++         this._xrayOverlay = new Sprite();
++         this._xrayOverlay.mouseEnabled = false;
++         this._xrayOverlay.mouseChildren = false;
++         this._xrayOverlay.visible = false;
++         addChildAt(this._xrayOverlay,0);
+          this._topPanel = new TopPanelUI(this);
+          this._bottomPanel = this.createBottomPanel(this);
+          this._buffsViewers = new Vector.<BuffViewerUI>(10,true);
+@@ -98,6 +246,10 @@
+          this._notifyTutorialQuestButton = new ButtonUI(this._notifyPanel).setImage(Images.BUTTON_NOTIFICATION_TUTORIAL_QUEST).setSize(58,58) as ButtonUI;
+          this._notifyWarehouseButton = new ButtonUI(this._notifyPanel).setImage(Images.BUTTON_NOTIFICATION_CHEST).setSize(58,58) as ButtonUI;
+          this._notifyBookTravelerButton = new ButtonUI(this._notifyPanel).setImage(Images.BUTTON_NOTIFICATION_BOOK_TRAVELER).setSize(58,58) as ButtonUI;
++         this._hostStopButton = null;
++         this.createPvpButton();
++         this.createGameChat();
++         this.createWorldMap();
+          new GameToolTipUI(this);
+       }
+ 
+@@ -105,22 +257,109 @@
+       {
+          addEventListener(MouseEvent.MOUSE_DOWN,this.onClick);
+          addEventListener(MouseEvent.MOUSE_UP,this.onClick);
++         addEventListener(Event.ENTER_FRAME,this._worldMap_OnEnterFrame);
+          stage.addEventListener(MouseEvent.MOUSE_WHEEL,this.onMouseWeel);
+          this._notifyRewardButton.addEventListener(MouseEvent.CLICK,this._notifyRewardButton_OnClick);
+          this._notifyWarehouseButton.addEventListener(MouseEvent.CLICK,this._notifyWarehouseButton_OnClick);
+          this._notifyTutorialQuestButton.addEventListener(MouseEvent.CLICK,this._notifyTutorialQuestButton_OnClick);
+          this._notifyBookTravelerButton.addEventListener(MouseEvent.CLICK,this._notifyBookTravelerButton_OnClick);
++         if(this._hostStopButton != null)
++         {
++            this._hostStopButton.addEventListener(MouseEvent.CLICK,this._hostStopButton_OnClick);
++         }
++         if(this._pvpButton != null)
++         {
++            this._pvpButton.addEventListener(MouseEvent.CLICK,this._pvpButton_OnClick);
++         }
++         if(this._mapButton != null)
++         {
++            this._mapButton.addEventListener(MouseEvent.CLICK,this._mapButton_OnClick);
++         }
++         if(this._mapOverlay != null)
++         {
++            this._mapOverlay.addEventListener(MouseEvent.CLICK,this._mapOverlay_OnClick);
++         }
++         if(stage != null)
++         {
++            stage.addEventListener(KeyboardEvent.KEY_DOWN,this._gameChatShortcut_OnKeyDown,true,1000);
++         }
++         if(this._gameChatInput != null)
++         {
++            this._gameChatInput.addEventListener(KeyboardEvent.KEY_DOWN,this._gameChatInput_OnKeyDown);
++            this._gameChatInput.addEventListener(KeyboardEvent.KEY_UP,this._gameChatInput_OnKeyUp);
++            this._gameChatInput.addEventListener(FocusEvent.FOCUS_OUT,this._gameChatInput_OnFocusOut);
++         }
++         if(this._gameChatFadeTimer != null)
++         {
++            this._gameChatFadeTimer.addEventListener(TimerEvent.TIMER_COMPLETE,this._gameChatFadeTimer_OnComplete);
++         }
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.chatSignal.remove(this.onGameChatMessage);
++            Context.multiplayer.chatSignal.add(this.onGameChatMessage);
++         }
+       }
+ 
+       override protected function removeEventListeners() : void
+       {
+          removeEventListener(MouseEvent.MOUSE_DOWN,this.onClick);
+          removeEventListener(MouseEvent.MOUSE_UP,this.onClick);
++         removeEventListener(Event.ENTER_FRAME,this._worldMap_OnEnterFrame);
+          stage.removeEventListener(MouseEvent.MOUSE_WHEEL,this.onMouseWeel);
+          this._notifyRewardButton.removeEventListener(MouseEvent.CLICK,this._notifyRewardButton_OnClick);
+          this._notifyWarehouseButton.removeEventListener(MouseEvent.CLICK,this._notifyWarehouseButton_OnClick);
+          this._notifyTutorialQuestButton.removeEventListener(MouseEvent.CLICK,this._notifyTutorialQuestButton_OnClick);
+          this._notifyBookTravelerButton.removeEventListener(MouseEvent.CLICK,this._notifyBookTravelerButton_OnClick);
++         if(this._hostStopButton != null)
++         {
++            this._hostStopButton.removeEventListener(MouseEvent.CLICK,this._hostStopButton_OnClick);
++         }
++         if(this._pvpButton != null)
++         {
++            this._pvpButton.removeEventListener(MouseEvent.CLICK,this._pvpButton_OnClick);
++         }
++         if(this._mapButton != null)
++         {
++            this._mapButton.removeEventListener(MouseEvent.CLICK,this._mapButton_OnClick);
++         }
++         if(this._mapOverlay != null)
++         {
++            this._mapOverlay.removeEventListener(MouseEvent.CLICK,this._mapOverlay_OnClick);
++         }
++         this.cleanupRemotePlayerMapIcons();
++         if(stage != null)
++         {
++            stage.removeEventListener(KeyboardEvent.KEY_DOWN,this._gameChatShortcut_OnKeyDown,true);
++         }
++         if(this._gameChatInput != null)
++         {
++            this._gameChatInput.removeEventListener(KeyboardEvent.KEY_DOWN,this._gameChatInput_OnKeyDown);
++            this._gameChatInput.removeEventListener(KeyboardEvent.KEY_UP,this._gameChatInput_OnKeyUp);
++            this._gameChatInput.removeEventListener(FocusEvent.FOCUS_OUT,this._gameChatInput_OnFocusOut);
++         }
++         if(this._gameChatFadeTimer != null)
++         {
++            this._gameChatFadeTimer.stop();
++            this._gameChatFadeTimer.removeEventListener(TimerEvent.TIMER_COMPLETE,this._gameChatFadeTimer_OnComplete);
++         }
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.chatInputActive = false;
++            Context.multiplayer.suppressPauseOnce = false;
++            Context.multiplayer.chatSignal.remove(this.onGameChatMessage);
++         }
++         if(this._mapData != null)
++         {
++            this.saveExploredMap();
++            this._mapData.dispose();
++            this._mapData = null;
++         }
++         this._mapVisited = null;
++         if(this._playerMapIconData != null)
++         {
++            this._playerMapIconData.dispose();
++            this._playerMapIconData = null;
++         }
+       }
+ 
+       override protected function update() : void
+@@ -128,6 +367,1748 @@
+          this._bottomPanel.y = stage.stageHeight - this._bottomPanel.height;
+          this._savingLabel.y = this._bottomPanel.y - 32;
+          this.positionNotifyButtons();
++         this.updateHostStopButton();
++         this.updateMapButton();
++         this.updatePvpButton();
++         if(this._mapOpen)
++         {
++            this.positionWorldMap();
++            this.updateMapMarkers();
++         }
++         this.updateLiveOverlays();
++         this.positionGameChat();
++         if(this._topPanel != null)
++         {
++            this._topPanel.visible = !this._mapOpen;
++            if(!this._mapOpen && contains(this._topPanel))
++            {
++               setChildIndex(this._topPanel,numChildren - 1);
++            }
++         }
++         if(this._gameChatPanel != null && contains(this._gameChatPanel))
++         {
++            setChildIndex(this._gameChatPanel,numChildren - 1);
++         }
++      }
++
++      private function updateHostStopButton() : void
++      {
++         var _loc1_:Boolean = Context.multiplayer != null && Context.multiplayer.isHost && Context.multiplayer.active;
++         if(this._hostStopButton == null)
++         {
++            return;
++         }
++         this._hostStopButton.visible = _loc1_;
++         this._hostStopButton.active = _loc1_;
++         this._hostStopButton.enabled = _loc1_;
++         this._hostStopButton.text = Context.app._choosedLanguage == "ru" ? "ОСТАНОВИТЬ" : "STOP HOST";
++         this.positionHostStopButton();
++      }
++
++      private function positionHostStopButton() : void
++      {
++         if(this._hostStopButton != null)
++         {
++            this._hostStopButton.x = stage.stageWidth - this._hostStopButton.width - 12;
++            this._hostStopButton.y = 10;
++         }
++      }
++
++      private function _hostStopButton_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         Context.app.quitGame();
++      }
++
++      private function createPvpButton() : void
++      {
++         this._pvpButton = new Sprite();
++         this._pvpButton.visible = false;
++      }
++
++      private function updatePvpButton() : void
++      {
++         if(this._pvpButton != null)
++         {
++            this._pvpButton.visible = false;
++         }
++      }
++
++      private function _pvpButton_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         var mp:MultiplayerManager = Context.multiplayer;
++         if(mp != null && mp.active)
++         {
++            mp.setPvpEnabled(!mp.pvpEnabled);
++            this.updatePvpButton();
++         }
++      }
++
++      private function createWorldMap() : void
++      {
++         try
++         {
++            this._mapButton = new Sprite();
++            this._mapButton.buttonMode = true;
++            this._mapButton.mouseChildren = false;
++            this.drawMiniMapFrame();
++            addChild(this._mapButton);
++         }
++         catch(_mapErr1_:Error)
++         {
++            this.logMapFailure(1,_mapErr1_);
++            return;
++         }
++         try
++         {
++            this._mapButtonLabel = new TextField();
++            this._mapButtonLabel.x = 8;
++            this._mapButtonLabel.width = MINI_MAP_WIDTH - 16;
++            this._mapButtonLabel.height = 23;
++            this._mapButtonLabel.y = 9;
++            this._mapButtonLabel.selectable = false;
++            this._mapButtonLabel.mouseEnabled = false;
++            this._mapButtonLabel.embedFonts = false;
++            this._mapButtonLabel.antiAliasType = AntiAliasType.ADVANCED;
++            this._mapButtonLabel.defaultTextFormat = new TextFormat("Verdana",12,16777215,true,null,null,null,null,"center");
++            this._mapButtonLabel.filters = [new GlowFilter(0,1,3,3,2,1)];
++            this._mapButton.addChild(this._mapButtonLabel);
++         }
++         catch(_mapErr2_:Error)
++         {
++            this.logMapFailure(2,_mapErr2_);
++            return;
++         }
++         try
++         {
++            this._miniMapBitmap = new Bitmap();
++            this._miniMapBitmap.smoothing = false;
++            this._mapButton.addChild(this._miniMapBitmap);
++            this._miniMapMarkers = new Sprite();
++            this._miniMapMarkers.mouseEnabled = false;
++            this._miniMapMarkers.mouseChildren = false;
++            this._mapButton.addChild(this._miniMapMarkers);
++         }
++         catch(_mapErr3_:Error)
++         {
++            this.logMapFailure(3,_mapErr3_);
++            return;
++         }
++         try
++         {
++            this._playerMapIconData = this.createPlayerMapIcon();
++            this._miniPlayerIcon = new Bitmap(this._playerMapIconData);
++            this._miniPlayerIcon.smoothing = true;
++            this._miniMapMarkers.addChild(this._miniPlayerIcon);
++         }
++         catch(_mapErr4_:Error)
++         {
++            this.logMapFailure(4,_mapErr4_);
++            return;
++         }
++         try
++         {
++            this._miniMapCoordinates = new TextField();
++            this._miniMapCoordinates.x = 10;
++            this._miniMapCoordinates.y = 150;
++            this._miniMapCoordinates.width = 112;
++            this._miniMapCoordinates.height = 20;
++            this._miniMapCoordinates.selectable = false;
++            this._miniMapCoordinates.mouseEnabled = false;
++            this._miniMapCoordinates.embedFonts = false;
++            this._miniMapCoordinates.antiAliasType = AntiAliasType.ADVANCED;
++            this._miniMapCoordinates.defaultTextFormat = new TextFormat("Verdana",11,13434879,true,null,null,null,null,"left");
++            this._miniMapCoordinates.filters = [new GlowFilter(0,1,3,3,2,1)];
++            this._mapButton.addChild(this._miniMapCoordinates);
++            this._miniMapDiscovery = new TextField();
++            this._miniMapDiscovery.x = 122;
++            this._miniMapDiscovery.y = 150;
++            this._miniMapDiscovery.width = 118;
++            this._miniMapDiscovery.height = 20;
++            this._miniMapDiscovery.selectable = false;
++            this._miniMapDiscovery.mouseEnabled = false;
++            this._miniMapDiscovery.embedFonts = false;
++            this._miniMapDiscovery.antiAliasType = AntiAliasType.ADVANCED;
++            this._miniMapDiscovery.defaultTextFormat = new TextFormat("Verdana",11,14070891,true,null,null,null,null,"right");
++            this._miniMapDiscovery.filters = [new GlowFilter(0,1,3,3,2,1)];
++            this._mapButton.addChild(this._miniMapDiscovery);
++         }
++         catch(_mapErr5_:Error)
++         {
++            this.logMapFailure(5,_mapErr5_);
++            return;
++         }
++         try
++         {
++            this._mapOverlay = new Sprite();
++            this._mapOverlay.visible = false;
++            this._mapOverlay.mouseEnabled = true;
++            this._mapOverlay.mouseChildren = false;
++            addChild(this._mapOverlay);
++            this._mapBitmap = new Bitmap();
++            this._mapBitmap.smoothing = false;
++            this._mapOverlay.addChild(this._mapBitmap);
++            this._mapMarkers = new Sprite();
++            this._mapMarkers.mouseEnabled = false;
++            this._mapMarkers.mouseChildren = false;
++            this._mapOverlay.addChild(this._mapMarkers);
++            this._fullPlayerIcon = new Bitmap(this._playerMapIconData);
++            this._fullPlayerIcon.smoothing = true;
++            this._mapMarkers.addChild(this._fullPlayerIcon);
++            this._mapTitle = new TextField();
++            this._mapTitle.height = 36;
++            this._mapTitle.selectable = false;
++            this._mapTitle.mouseEnabled = false;
++            this._mapTitle.embedFonts = false;
++            this._mapTitle.antiAliasType = AntiAliasType.ADVANCED;
++            this._mapTitle.defaultTextFormat = new TextFormat("Verdana",16,16777215,true,null,null,null,null,"center");
++            this._mapTitle.filters = [new GlowFilter(0,1,4,4,2,1)];
++            this._mapOverlay.addChild(this._mapTitle);
++            this._mapTooltip = new Sprite();
++            this._mapTooltip.mouseEnabled = false;
++            this._mapTooltip.mouseChildren = false;
++            this._mapTooltip.visible = false;
++            this._mapTooltipText = new TextField();
++            this._mapTooltipText.x = 8;
++            this._mapTooltipText.y = 4;
++            this._mapTooltipText.autoSize = TextFieldAutoSize.LEFT;
++            this._mapTooltipText.selectable = false;
++            this._mapTooltipText.mouseEnabled = false;
++            this._mapTooltipText.defaultTextFormat = new TextFormat("Verdana",12,16777215,true);
++            this._mapTooltipText.filters = [new GlowFilter(0,1,3,3,3,1)];
++            this._mapTooltip.addChild(this._mapTooltipText);
++            this._mapOverlay.addChild(this._mapTooltip);
++         }
++         catch(_mapErr6_:Error)
++         {
++            this.logMapFailure(6,_mapErr6_);
++            return;
++         }
++         this.updateMapButton();
++      }
++
++      private function logMapFailure(param1:int, param2:Error) : void
++      {
++         var _so_:SharedObject;
++         var _arr_:Array;
++         try
++         {
++            Context.console.writeError("createWorldMap block " + param1 + " FAILED: " + param2.toString() + "\n" + param2.getStackTrace());
++         }
++         catch(_logErr1_:Error)
++         {
++         }
++         try
++         {
++            _so_ = SharedObject.getLocal("crash_log");
++            _arr_ = _so_.data.errors as Array;
++            if(_arr_ == null)
++            {
++               _arr_ = [];
++            }
++            _arr_.push("MAPBLOCK " + param1 + " " + param2.toString() + "\n" + param2.getStackTrace());
++            while(_arr_.length > 100)
++            {
++               _arr_.shift();
++            }
++            _so_.data.errors = _arr_;
++            try
++            {
++               _so_.flush();
++            }
++            catch(_flushErr_:Error)
++            {
++            }
++         }
++         catch(_logErr2_:Error)
++         {
++         }
++         if(this._mapButton != null && this._mapButton.parent != null)
++         {
++            this._mapButton.parent.removeChild(this._mapButton);
++         }
++         this._mapButton = null;
++      }
++
++      private function createPlayerMapIcon() : BitmapData
++      {
++         return this.createCharacterMapIcon(Context.world == null ? null : Context.world.player,false);
++      }
++
++      private function createCharacterMapIcon(param1:CharacterEntity, isRemote:Boolean = false) : BitmapData
++      {
++         var portrait:BitmapData;
++         var spr:Sprite;
++         var g:Graphics;
++         var headBmp:Bitmap;
++         var m:Matrix;
++         var headSpr:Sprite;
++         var maskShape:Shape;
++         var fbSpr:Sprite;
++         var fbg:Graphics;
++         var iconSize:int = 42;
++         var halfSize:Number = 21;
++         var radius:Number = 20;
++         var result:BitmapData = new BitmapData(iconSize,iconSize,true,0);
++         try
++         {
++            if(param1 == null && Context.world != null)
++            {
++               param1 = Context.world.player;
++            }
++            portrait = null;
++            if(param1 != null)
++            {
++               portrait = CharacterIcon.create(param1);
++            }
++            spr = new Sprite();
++            g = spr.graphics;
++            if(portrait != null)
++            {
++               headBmp = new Bitmap(portrait);
++               headBmp.smoothing = true;
++               m = new Matrix();
++               m.translate(-17,-31);
++               m.scale(1.1,1.1);
++               m.translate(halfSize,halfSize);
++               headSpr = new Sprite();
++               headSpr.addChild(headBmp);
++               headBmp.transform.matrix = m;
++               maskShape = new Shape();
++               maskShape.graphics.beginFill(16777215);
++               maskShape.graphics.drawRect(0,0,iconSize,iconSize);
++               maskShape.graphics.endFill();
++               headSpr.mask = maskShape;
++               headSpr.addChild(maskShape);
++               spr.addChild(headSpr);
++            }
++            result.draw(spr);
++            if(portrait != null)
++            {
++               portrait.dispose();
++            }
++         }
++         catch(e:Error)
++         {
++            fbSpr = new Sprite();
++            fbg = fbSpr.graphics;
++            result.draw(fbSpr);
++         }
++         return result;
++      }
++
++      private function drawMiniMapFrame() : void
++      {
++         var _loc1_:Graphics = this._mapButton.graphics;
++         _loc1_.clear();
++         _loc1_.beginFill(0,0.45);
++         _loc1_.drawRoundRect(2,3,MINI_MAP_WIDTH,MINI_MAP_HEIGHT,12,12);
++         _loc1_.endFill();
++         _loc1_.lineStyle(2,2000534,1,true);
++         _loc1_.beginFill(799549,0.98);
++         _loc1_.drawRoundRect(0,0,MINI_MAP_WIDTH,MINI_MAP_HEIGHT,12,12);
++         _loc1_.endFill();
++         _loc1_.lineStyle(0,0,0);
++         _loc1_.beginFill(1006441,1);
++         _loc1_.drawRoundRectComplex(2,2,MINI_MAP_WIDTH - 4,25,10,10,0,0);
++         _loc1_.endFill();
++         _loc1_.lineStyle(1,2400436,0.9,true);
++         _loc1_.moveTo(6,2);
++         _loc1_.lineTo(MINI_MAP_WIDTH - 6,2);
++         _loc1_.lineStyle(1,403504,1,true);
++         _loc1_.moveTo(2,27);
++         _loc1_.lineTo(MINI_MAP_WIDTH - 2,27);
++         _loc1_.lineStyle(1,1466479,1,true);
++         _loc1_.moveTo(2,149);
++         _loc1_.lineTo(MINI_MAP_WIDTH - 2,149);
++         _loc1_.lineStyle(0,0,0);
++         _loc1_.beginFill(467496,1);
++         _loc1_.drawRoundRectComplex(2,150,MINI_MAP_WIDTH - 4,24,0,0,10,10);
++         _loc1_.endFill();
++         _loc1_.lineStyle(1,400932,1,true);
++         _loc1_.beginFill(0,1);
++         _loc1_.drawRect(4,28,MINI_MAP_WIDTH - 8,121);
++         _loc1_.endFill();
++      }
++
++      private function updateMapButton() : void
++      {
++         if(this._mapButton == null || stage == null || this._mapButtonLabel == null)
++         {
++            return;
++         }
++         this._mapButton.visible = !this._mapOpen && Context.world != null && Context.world.created && Context.world.player != null;
++         this._mapButtonLabel.text = (Context.app._choosedLanguage == "ru" ? "Карта Мира" : "World Map") + "   [M]";
++         this._mapButton.x = stage.stageWidth - MINI_MAP_WIDTH - 12;
++         this._mapButton.y = 10;
++         this.positionMiniMap();
++         this.updateMiniMapLabels();
++      }
++
++      private function updateMiniMapLabels() : void
++      {
++         if(this._miniMapCoordinates == null || this._miniMapDiscovery == null || Context.world == null || Context.world.player == null)
++         {
++            return;
++         }
++         var _loc1_:int = int(Context.world.player.center.x / Tile.SIZE);
++         var _loc2_:int = int(Context.world.player.center.y / Tile.SIZE);
++         var _loc3_:int = this._mapVisited == null || this._mapVisited.length == 0 ? 0 : int(this._mapRevealedCount * 100 / this._mapVisited.length);
++         this._miniMapCoordinates.text = "X " + _loc1_ + "  Y " + _loc2_;
++         this._miniMapDiscovery.text = (Context.app._choosedLanguage == "ru" ? "ОТКРЫТО " : "EXPLORED ") + _loc3_ + "%";
++      }
++
++      private function _mapButton_OnClick(param1:MouseEvent) : void
++      {
++         playSound(Sounds.BUTTON_CLICK);
++         this.openWorldMap();
++      }
++
++      private function _mapOverlay_OnClick(param1:MouseEvent) : void
++      {
++         this.closeWorldMap();
++      }
++
++      private function _worldMap_OnEnterFrame(param1:Event) : void
++      {
++         try
++         {
++            if(Context.world != null && Context.world.created && Context.world.player != null)
++            {
++               if(this._mapData == null || this._mapData.width != Context.world.tilesX || this._mapData.height != Context.world.tilesY)
++               {
++                  this.buildWorldMap();
++               }
++               this.revealVisitedArea();
++               if(this._mapOpen)
++               {
++                  this.positionWorldMap();
++               }
++               this.updateMapMarkers();
++            }
++            this.updateMapButton();
++            this.updateLiveOverlays();
++         }
++         catch(frameErr:Error)
++         {
++         }
++      }
++
++      public function toggleWorldMap() : void
++      {
++         if(this._mapOpen)
++         {
++            this.closeWorldMap();
++         }
++         else
++         {
++            this.openWorldMap();
++         }
++      }
++
++      private function openWorldMap() : void
++      {
++         if(this._mapOpen || Context.world == null || !Context.world.created)
++         {
++            return;
++         }
++         this._mapOpen = true;
++         this._mapZoom = 4;
++         if(this._mapData == null)
++         {
++            this.buildWorldMap();
++         }
++         this._mapOverlay.visible = true;
++         if(this._topPanel != null)
++         {
++            this._topPanel.visible = false;
++         }
++         if(this._pvpButton != null)
++         {
++            this._pvpButton.visible = false;
++         }
++         this.updateMapButton();
++         this.positionWorldMap();
++         this.updateMapMarkers();
++      }
++
++      private function closeWorldMap() : void
++      {
++         if(!this._mapOpen)
++         {
++            return;
++         }
++         this._mapOpen = false;
++         this._mapOverlay.visible = false;
++         if(this._topPanel != null)
++         {
++            this._topPanel.visible = true;
++         }
++         if(this._pvpButton != null)
++         {
++            this._pvpButton.visible = false;
++         }
++         this.saveExploredMap();
++         this.updateMapButton();
++      }
++
++      private function buildWorldMap() : void
++      {
++         if(this._mapData != null)
++         {
++            this._mapData.dispose();
++         }
++         var _loc1_:int = Context.world.tilesX;
++         var _loc2_:int = Context.world.tilesY;
++         this._mapData = new BitmapData(_loc1_,_loc2_,false,MAP_FOG_COLOR);
++         this._mapVisited = new ByteArray();
++         this._mapVisited.length = _loc1_ * _loc2_;
++         this._mapRevealedCount = 0;
++         var _locProfileStore_:SharedObject = SharedObject.getLocal("test");
++         var _locProfileIndex_:int = _locProfileStore_.data.activeProfileIndex != null ? int(_locProfileStore_.data.activeProfileIndex) : 0;
++         this._mapStorageKey = "world_" + Context.world.worldId + "_" + _loc1_ + "x" + _loc2_ + "_spawn_" + Context.world.spawnPlayerX + "_" + Context.world.spawnPlayerY + "_portal_" + Context.world.spawnPortalX + "_" + Context.world.spawnPortalY + "_profile_" + _locProfileIndex_;
++         var _locStored_:ByteArray = SharedObject.getLocal("orion_explored_maps").data[this._mapStorageKey] as ByteArray;
++         var hasStoredExploration:Boolean = false;
++         if(_locStored_ != null && _locStored_.length == this._mapVisited.length)
++         {
++            _locStored_.position = 0;
++            this._mapVisited.position = 0;
++            this._mapVisited.writeBytes(_locStored_);
++            var countVisited:int = 0;
++            var totalT:int = _loc1_ * _loc2_;
++            var vi:int = 0;
++            while(vi < totalT)
++            {
++               if(this._mapVisited[vi] != 0)
++               {
++                  countVisited++;
++               }
++               vi++;
++            }
++            if(countVisited > 0 && countVisited < totalT * 0.9)
++            {
++               hasStoredExploration = true;
++               this._mapRevealedCount = countVisited;
++            }
++            else
++            {
++               this._mapVisited.clear();
++               this._mapVisited.length = totalT;
++               this._mapRevealedCount = 0;
++            }
++         }
++         this._treeBlockIds = new Object();
++         var _locBlockIndex_:int = 1;
++         while(_locBlockIndex_ < Block.BLOCKS.length)
++         {
++            if(Block.BLOCKS[_locBlockIndex_] != null && getQualifiedClassName(Block.BLOCKS[_locBlockIndex_]).indexOf("Tree") >= 0 && Block.BLOCKS[_locBlockIndex_].material == Material.WOOD)
++            {
++               this._treeBlockIds[_locBlockIndex_] = 1;
++            }
++            _locBlockIndex_++;
++         }
++         this._mapData.lock();
++         if(hasStoredExploration)
++         {
++            var _loc4_:int = 0;
++            var _loc3_:int = 0;
++            var _loc5_:Tile = null;
++            while(_loc4_ < _loc2_)
++            {
++               _loc3_ = 0;
++               while(_loc3_ < _loc1_)
++               {
++                  var tIdx:int = _loc3_ + _loc4_ * _loc1_;
++                  if(this._mapVisited[tIdx] != 0)
++                  {
++                     _loc5_ = Context.world.tiles[tIdx];
++                     this._mapData.setPixel(_loc3_,_loc4_,this.mapTileColor(_loc5_));
++                  }
++                  _loc3_++;
++               }
++               _loc4_++;
++            }
++            this.repaintTreeTiles(0,_loc1_ - 1,0,_loc2_ - 1);
++         }
++         this._mapData.unlock();
++         this._mapBitmap.bitmapData = this._mapData;
++         this._miniMapBitmap.bitmapData = this._mapData;
++         this._lastMapTileX = -100000;
++         this._lastMapTileY = -100000;
++         this._lastMapSaveTime = getTimer();
++         this.revealVisitedArea();
++         this.positionMiniMap();
++      }
++
++      private function revealVisitedArea() : void
++      {
++         if(this._mapData == null || this._mapVisited == null || Context.world == null || Context.world.player == null)
++         {
++            return;
++         }
++         var _loc1_:int = int(Context.world.player.center.x / Tile.SIZE);
++         var _loc2_:int = int(Context.world.player.center.y / Tile.SIZE);
++         if(_loc1_ == this._lastMapTileX && _loc2_ == this._lastMapTileY && this._mapRevealedCount > 0)
++         {
++            return;
++         }
++         this._lastMapTileX = _loc1_;
++         this._lastMapTileY = _loc2_;
++         var isInitialReveal:Boolean = this._mapRevealedCount == 0;
++         var _loc3_:int = isInitialReveal ? 35 : Math.max(12,int((Context.screen.endX - Context.screen.x) / Tile.SIZE * 0.55) + 2);
++         var _loc4_:int = isInitialReveal ? 25 : Math.max(8,int((Context.screen.endY - Context.screen.y) / Tile.SIZE * 0.55) + 2);
++         var _loc5_:int = Math.max(0,_loc1_ - _loc3_);
++         var _loc6_:int = Math.min(Context.world.tilesX - 1,_loc1_ + _loc3_);
++         var _loc7_:int = Math.max(0,_loc2_ - _loc4_);
++         var _loc8_:int = Math.min(Context.world.tilesY - 1,_loc2_ + _loc4_);
++         var _loc9_:int = _loc7_;
++         var _loc10_:int = 0;
++         var _loc11_:int = 0;
++         this._mapData.lock();
++         while(_loc9_ <= _loc8_)
++         {
++            _loc10_ = _loc5_;
++            while(_loc10_ <= _loc6_)
++            {
++               _loc11_ = _loc10_ + _loc9_ * Context.world.tilesX;
++               if(this._mapVisited[_loc11_] == 0)
++               {
++                  ++this._mapRevealedCount;
++               }
++               this._mapVisited[_loc11_] = 1;
++               this._mapData.setPixel(_loc10_,_loc9_,this.mapTileColor(Context.world.tiles[_loc11_]));
++               _loc10_++;
++            }
++            _loc9_++;
++         }
++         this.repaintTreeTiles(_loc5_,_loc6_,_loc7_,_loc8_);
++         this._mapData.unlock();
++         if(getTimer() - this._lastMapSaveTime >= 15000)
++         {
++            this.saveExploredMap();
++         }
++      }
++
++      private function saveExploredMap() : void
++      {
++         var _loc1_:ByteArray;
++         var _loc2_:SharedObject;
++         if(this._mapVisited == null || this._mapStorageKey == null)
++         {
++            return;
++         }
++         _loc1_ = new ByteArray();
++         this._mapVisited.position = 0;
++         _loc1_.writeBytes(this._mapVisited);
++         this._mapVisited.position = 0;
++         _loc2_ = SharedObject.getLocal("orion_explored_maps");
++         _loc2_.data[this._mapStorageKey] = _loc1_;
++         try
++         {
++            _loc2_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++         this._lastMapSaveTime = getTimer();
++      }
++
++      private function mapTileColor(param1:Tile) : uint
++      {
++         if(param1 == null)
++         {
++            return 0;
++         }
++         if(param1.liquidId == Liquids.WATER_ID)
++         {
++            return 3046628;
++         }
++         if(param1.liquidId == Liquids.MAGMA_ID)
++         {
++            return 16732160;
++         }
++         if(param1.blockId > 0 && param1.blockId < Block.BLOCKS.length && Block.BLOCKS[param1.blockId] != null)
++         {
++            var _b_:Block = Block.BLOCKS[param1.blockId];
++            if(_b_ == Block.CHEST_GOLD || param1.blockId == 199)
++            {
++               return 16766240;
++            }
++            if(_b_ == Block.TREASURE_CHEST || param1.blockId == 156)
++            {
++               return 6351080;
++            }
++            if(_b_ is TorchBlock || param1.blockId == 53 || param1.blockId == 54)
++            {
++               return 16762880;
++            }
++            if(_b_ is ChristmasTreeBlock || _b_ is BigChristmasTreeBlock || param1.blockId == 154 || param1.blockId == 155)
++            {
++               return 1997358;
++            }
++            if(param1.blockId == 20)
++            {
++               return 14426144;
++            }
++            if(param1.blockId == 21)
++            {
++               return 16766720;
++            }
++            if(param1.blockId == 22)
++            {
++               return 10236096;
++            }
++            if(param1.blockId == 80)
++            {
++               return 16732160;
++            }
++            if(_b_ is TreeBlock)
++            {
++               return 9328932;
++            }
++            if(_b_ is BranchTreeSmallTBlock)
++            {
++               var _tx_:int = param1.data & 0x0F;
++               var _ty_:int = param1.data >> 4 & 0x0F;
++               if(_tx_ == 0 || _tx_ == 8 || _ty_ == 5 || _tx_ <= 2 && _ty_ == 0 || _tx_ >= 6 && _ty_ == 0 || _tx_ == 1 && _ty_ == 1 || _tx_ == 7 && _ty_ == 1)
++               {
++                  if(param1.wallId > 0 && param1.wallId < Wall.WALLS.length && Wall.WALLS[param1.wallId] != null)
++                  {
++                     return this.materialColor(Wall.WALLS[param1.wallId].material,true);
++                  }
++                  return 7321576;
++               }
++               if(_tx_ == 4 && _ty_ >= 3)
++               {
++                  return 9328932;
++               }
++               return _ty_ <= 1 ? 3920202 : (_ty_ >= 4 ? 2396463 : 3061819);
++            }
++            if(_b_ is BranchTreeSmallLBlock)
++            {
++               var _lx_:int = param1.data & 3;
++               var _ly_:int = param1.data >> 2 & 3;
++               if(_lx_ == 2 && _ly_ == 0 || _lx_ == 0 && _ly_ == 2)
++               {
++                  if(param1.wallId > 0 && param1.wallId < Wall.WALLS.length && Wall.WALLS[param1.wallId] != null)
++                  {
++                     return this.materialColor(Wall.WALLS[param1.wallId].material,true);
++                  }
++                  return 7321576;
++               }
++               if(_lx_ == 2 && _ly_ >= 1)
++               {
++                  return 9328932;
++               }
++               return _ly_ == 0 ? 3920202 : 3061819;
++            }
++            if(_b_ is BranchTreeSmallRBlock)
++            {
++               var _rx_:int = param1.data & 3;
++               var _ry_:int = param1.data >> 2 & 3;
++               if(_rx_ == 0 && _ry_ == 0 || _rx_ == 2 && _ry_ == 2)
++               {
++                  if(param1.wallId > 0 && param1.wallId < Wall.WALLS.length && Wall.WALLS[param1.wallId] != null)
++                  {
++                     return this.materialColor(Wall.WALLS[param1.wallId].material,true);
++                  }
++                  return 7321576;
++               }
++               if(_rx_ == 0 && _ry_ >= 1)
++               {
++                  return 9328932;
++               }
++               return _ry_ == 0 ? 3920202 : 3061819;
++            }
++            return this.materialColor(_b_.material,false);
++         }
++         if(param1.wallId > 0 && param1.wallId < Wall.WALLS.length && Wall.WALLS[param1.wallId] != null)
++         {
++            return this.materialColor(Wall.WALLS[param1.wallId].material,true);
++         }
++         return 7321576;
++      }
++
++      private function materialColor(param1:int, param2:Boolean) : uint
++      {
++         var _loc3_:uint = 8421504;
++         switch(param1)
++         {
++            case Material.OBSIDIAN:
++               _loc3_ = 5917322;
++               break;
++            case Material.STONE:
++               _loc3_ = 9211028;
++               break;
++            case Material.EARTH:
++               _loc3_ = 11035694;
++               break;
++            case Material.GRASS:
++               _loc3_ = 3786824;
++               break;
++            case Material.SAND:
++               _loc3_ = 14863472;
++               break;
++            case Material.PLANT:
++            case Material.LEAVES:
++               _loc3_ = 3519541;
++               break;
++            case Material.WOOD:
++               _loc3_ = 10118704;
++               break;
++            case Material.GLASS:
++               _loc3_ = 12115180;
++               break;
++            case Material.COAL:
++               _loc3_ = 4473924;
++               break;
++            case Material.IRON:
++               _loc3_ = 12632264;
++               break;
++            case Material.GOLD:
++               _loc3_ = 16766240;
++               break;
++            case Material.DIAMOND:
++               _loc3_ = 6351080;
++               break;
++            case Material.FIRE_IRON:
++               _loc3_ = 15229992;
++               break;
++            case Material.BRONZE:
++               _loc3_ = 13142080;
++               break;
++            case Material.ORGANIC:
++               _loc3_ = 11554896;
++         }
++         if(param2)
++         {
++            var _loc4_:uint = uint(_loc3_ >> 16 & 0xFF);
++            var _loc5_:uint = uint(_loc3_ >> 8 & 0xFF);
++            var _loc6_:uint = uint(_loc3_ & 0xFF);
++            _loc3_ = uint(uint(_loc4_ * 0.62) << 16 | uint(_loc5_ * 0.62) << 8 | uint(_loc6_ * 0.62));
++         }
++         return _loc3_;
++      }
++
++      private function isTreeBlockAt(param1:int, param2:int) : Boolean
++      {
++         if(Context.world == null || param1 < 0 || param2 < 0 || param1 >= Context.world.tilesX || param2 >= Context.world.tilesY)
++         {
++            return false;
++         }
++         var _loc3_:Tile = Context.world.tiles[param1 + param2 * Context.world.tilesX];
++         if(_loc3_ == null || _loc3_.blockId <= 0)
++         {
++            return false;
++         }
++         var _b_:Block = Block.BLOCKS[_loc3_.blockId];
++         return _b_ is TreeBlock || _b_ is BranchTreeSmallLBlock || _b_ is BranchTreeSmallRBlock || _b_ is BranchTreeSmallTBlock || _b_ is ChristmasTreeBlock || _b_ is BigChristmasTreeBlock;
++      }
++
++      private function repaintTreeTiles(param1:int, param2:int, param3:int, param4:int) : void
++      {
++         var _loc9_:int = 0;
++         var _loc10_:int = 0;
++         var _loc11_:int = 0;
++         var _loc12_:int = 0;
++         var _loc14_:uint = 0;
++         if(this._mapData == null || Context.world == null || this._mapVisited == null)
++         {
++            return;
++         }
++         _loc9_ = Math.max(0,param1);
++         _loc10_ = Math.min(Context.world.tilesX - 1,param2);
++         _loc11_ = Math.max(0,param3);
++         _loc12_ = Math.min(Context.world.tilesY - 1,param4);
++         var _locX_:int = _loc9_;
++         while(_locX_ <= _loc10_)
++         {
++            var _locY_:int = _loc11_;
++            while(_locY_ <= _loc12_)
++            {
++               var _locIndex_:int = _locX_ + _locY_ * Context.world.tilesX;
++               if(this._mapVisited[_locIndex_] != 0)
++               {
++                  var _tile_:Tile = Context.world.tiles[_locIndex_];
++                  if(_tile_ != null && _tile_.blockId > 0)
++                  {
++                     var _blk_:Block = Block.BLOCKS[_tile_.blockId];
++                     if(_blk_ != null)
++                     {
++                        if(_blk_ is TreeBlock)
++                        {
++                           this._mapData.setPixel(_locX_,_locY_,9328932);
++                        }
++                        else if(_blk_ is BranchTreeSmallTBlock)
++                        {
++                           var _tx_:int = _tile_.data & 0x0F;
++                           var _ty_:int = _tile_.data >> 4 & 0x0F;
++                           if(_tx_ == 0 || _tx_ == 8 || _ty_ == 5 || _tx_ <= 2 && _ty_ == 0 || _tx_ >= 6 && _ty_ == 0 || _tx_ == 1 && _ty_ == 1 || _tx_ == 7 && _ty_ == 1)
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,this.mapTileColor(_tile_));
++                           }
++                           else if(_tx_ == 4 && _ty_ >= 3)
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,9328932);
++                           }
++                           else
++                           {
++                              _loc14_ = 3061819;
++                              if(_ty_ <= 1)
++                              {
++                                 _loc14_ = 3920202;
++                              }
++                              else if(_ty_ >= 4)
++                              {
++                                 _loc14_ = 2396463;
++                              }
++                              this._mapData.setPixel(_locX_,_locY_,_loc14_);
++                           }
++                        }
++                        else if(_blk_ is BranchTreeSmallLBlock)
++                        {
++                           var _lx_:int = _tile_.data & 3;
++                           var _ly_:int = _tile_.data >> 2 & 3;
++                           if(_lx_ == 2 && _ly_ >= 1)
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,9328932);
++                           }
++                           else if(_lx_ == 2 && _ly_ == 0 || _lx_ == 0 && _ly_ == 2)
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,this.mapTileColor(_tile_));
++                           }
++                           else
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,_ly_ == 0 ? 3920202 : 3061819);
++                           }
++                        }
++                        else if(_blk_ is BranchTreeSmallRBlock)
++                        {
++                           var _rx_:int = _tile_.data & 3;
++                           var _ry_:int = _tile_.data >> 2 & 3;
++                           if(_rx_ == 0 && _ry_ >= 1)
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,9328932);
++                           }
++                           else if(_rx_ == 0 && _ry_ == 0 || _rx_ == 2 && _ry_ == 2)
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,this.mapTileColor(_tile_));
++                           }
++                           else
++                           {
++                              this._mapData.setPixel(_locX_,_locY_,_ry_ == 0 ? 3920202 : 3061819);
++                           }
++                        }
++                        else if(_blk_ is ChristmasTreeBlock || _blk_ is BigChristmasTreeBlock)
++                        {
++                           this._mapData.setPixel(_locX_,_locY_,1997358);
++                        }
++                     }
++                  }
++               }
++               _locY_++;
++            }
++            _locX_++;
++         }
++      }
++
++      private function positionWorldMap() : void
++      {
++         if(!this._mapOpen || stage == null || Context.world == null || this._mapOverlay == null || this._mapBitmap == null || Context.world.player == null)
++         {
++            return;
++         }
++         this._mapOverlay.graphics.clear();
++         this._mapOverlay.graphics.beginFill(0,1);
++         this._mapOverlay.graphics.drawRect(0,0,stage.stageWidth,stage.stageHeight);
++         this._mapOverlay.graphics.endFill();
++         var _loc1_:Number = Math.min((stage.stageWidth - 100) / Context.world.tilesX,(stage.stageHeight - 100) / Context.world.tilesY) * this._mapZoom;
++         this._mapBitmap.width = Context.world.tilesX * _loc1_;
++         this._mapBitmap.height = Context.world.tilesY * _loc1_;
++         if(this._mapZoom <= 1)
++         {
++            this._mapBitmap.x = Math.round((stage.stageWidth - this._mapBitmap.width) * 0.5);
++            this._mapBitmap.y = Math.round((stage.stageHeight - this._mapBitmap.height) * 0.5 + 34);
++         }
++         else
++         {
++            var _loc2_:Number = Context.world.player.center.x / (Context.world.tilesX * Tile.SIZE);
++            var _loc3_:Number = Context.world.player.center.y / (Context.world.tilesY * Tile.SIZE);
++            this._mapBitmap.x = Math.round(stage.stageWidth * 0.5 - _loc2_ * this._mapBitmap.width);
++            this._mapBitmap.y = Math.round(stage.stageHeight * 0.5 - _loc3_ * this._mapBitmap.height);
++            if(this._mapBitmap.width > stage.stageWidth - 40)
++            {
++               this._mapBitmap.x = Math.max(stage.stageWidth - 20 - this._mapBitmap.width,Math.min(20,this._mapBitmap.x));
++            }
++            else
++            {
++               this._mapBitmap.x = Math.round((stage.stageWidth - this._mapBitmap.width) * 0.5);
++            }
++            if(this._mapBitmap.height > stage.stageHeight - 90)
++            {
++               this._mapBitmap.y = Math.max(stage.stageHeight - 30 - this._mapBitmap.height,Math.min(52,this._mapBitmap.y));
++            }
++            else
++            {
++               this._mapBitmap.y = Math.round((stage.stageHeight - this._mapBitmap.height) * 0.5 + 34);
++            }
++         }
++         this._mapOverlay.graphics.lineStyle(7,0,0.7,true);
++         this._mapOverlay.graphics.drawRoundRect(this._mapBitmap.x - 8,this._mapBitmap.y - 8,this._mapBitmap.width + 16,this._mapBitmap.height + 16,10,10);
++         this._mapOverlay.graphics.lineStyle(3,8443602,1,true);
++         this._mapOverlay.graphics.drawRoundRect(this._mapBitmap.x - 6,this._mapBitmap.y - 6,this._mapBitmap.width + 12,this._mapBitmap.height + 12,8,8);
++         this._mapOverlay.graphics.lineStyle(1,13146699,0.95,true);
++         this._mapOverlay.graphics.drawRect(this._mapBitmap.x - 2,this._mapBitmap.y - 2,this._mapBitmap.width + 4,this._mapBitmap.height + 4);
++         this._mapTitle.width = stage.stageWidth;
++         this._mapTitle.x = 0;
++         this._mapTitle.y = 8;
++         this._mapTitle.text = Context.app._choosedLanguage == "ru" ? "Карта Мира  •  колесо — масштаб " + int(this._mapZoom * 100) + "%  •  M / ESC — закрыть" : "World Map  •  wheel zoom " + int(this._mapZoom * 100) + "%  •  M / ESC to close";
++         this.updateMapMarkers();
++      }
++
++      private function positionMiniMap() : void
++      {
++         if(this._miniMapBitmap == null || Context.world == null)
++         {
++            return;
++         }
++         var _loc1_:Number = Math.min(232 / Context.world.tilesX,112 / Context.world.tilesY);
++         this._miniMapBitmap.width = Context.world.tilesX * _loc1_;
++         this._miniMapBitmap.height = Context.world.tilesY * _loc1_;
++         this._miniMapBitmap.x = Math.round((MINI_MAP_WIDTH - this._miniMapBitmap.width) * 0.5);
++         this._miniMapBitmap.y = Math.round(31 + (112 - this._miniMapBitmap.height) * 0.5);
++      }
++
++      private function updateMapMarkers() : void
++      {
++         var pGender:Boolean;
++         var pHair:int;
++         var pHead:int;
++         var pColor:int;
++         var newPlayerIcon:BitmapData;
++         var activeRps:Dictionary;
++         var isRu:Boolean;
++         var _loc1_:CreatureEntity;
++         var rp:ControlCharacterEntity;
++         var markerData:Object;
++         var iconBmpData:BitmapData;
++         var mBmp:Bitmap;
++         var fBmp:Bitmap;
++         var mLabel:TextField;
++         var fLabel:TextField;
++         var newIcon:BitmapData;
++         var rpMiniX:Number;
++         var rpMiniY:Number;
++         var actionText:String;
++         var rpFullX:Number;
++         var rpFullY:Number;
++         var activeKey:Object;
++         var oldData:Object;
++         try
++         {
++            if(this._mapData == null || Context.world == null || Context.world.player == null || this._miniMapMarkers == null || this._miniMapBitmap == null)
++            {
++               return;
++            }
++            pGender = Context.world.player.gender;
++            pHair = Context.world.player.hairIndex;
++            pHead = Context.world.player.headIndex;
++            pColor = Context.world.player.hairColorIndex;
++            if(this._miniPlayerIcon != null && (this._playerNeedsIconRefresh || this._lastPlayerHair != pHair || this._lastPlayerHead != pHead || this._lastPlayerColor != pColor || this._lastPlayerGender != pGender))
++            {
++               this._playerNeedsIconRefresh = false;
++               this._lastPlayerHair = pHair;
++               this._lastPlayerHead = pHead;
++               this._lastPlayerColor = pColor;
++               this._lastPlayerGender = pGender;
++               newPlayerIcon = this.createPlayerMapIcon();
++               if(newPlayerIcon != null)
++               {
++                  if(this._playerMapIconData != null)
++                  {
++                     this._playerMapIconData.dispose();
++                  }
++                  this._playerMapIconData = newPlayerIcon;
++                  this._miniPlayerIcon.bitmapData = newPlayerIcon;
++                  if(this._fullPlayerIcon != null)
++                  {
++                     this._fullPlayerIcon.bitmapData = newPlayerIcon;
++                  }
++               }
++            }
++            this._miniMapMarkers.graphics.clear();
++            this.positionPlayerMapIcon(this._miniPlayerIcon,this._miniMapBitmap,Context.world.player,22);
++            if(this._mapOpen && this._mapMarkers != null && this._mapBitmap != null && this._mapBitmap.width > 0)
++            {
++               this._mapMarkers.graphics.clear();
++               this.positionPlayerMapIcon(this._fullPlayerIcon,this._mapBitmap,Context.world.player,42);
++               this._fullPlayerIcon.visible = true;
++               this.drawMapViewport(this._mapMarkers,this._mapBitmap);
++            }
++            else if(this._fullPlayerIcon != null)
++            {
++               this._fullPlayerIcon.visible = false;
++            }
++            activeRps = new Dictionary();
++            isRu = Context.app._choosedLanguage == "ru";
++            _loc1_ = null;
++            for each(_loc1_ in Context.world.creatures)
++            {
++               if(_loc1_ != null && getQualifiedClassName(_loc1_).indexOf("RemotePlayer") >= 0)
++               {
++                  rp = _loc1_ as ControlCharacterEntity;
++                  activeRps[rp] = true;
++                  markerData = this._remotePlayerMapIcons[rp];
++                  if(markerData == null)
++                  {
++                     iconBmpData = this.createCharacterMapIcon(rp,true);
++                     mBmp = new Bitmap(iconBmpData);
++                     mBmp.smoothing = true;
++                     this._miniMapMarkers.addChild(mBmp);
++                     fBmp = new Bitmap(iconBmpData);
++                     fBmp.smoothing = true;
++                     if(this._mapMarkers != null)
++                     {
++                        this._mapMarkers.addChild(fBmp);
++                     }
++                     mLabel = new TextField();
++                     mLabel.width = 120;
++                     mLabel.height = 26;
++                     mLabel.selectable = false;
++                     mLabel.mouseEnabled = false;
++                     mLabel.embedFonts = false;
++                     mLabel.antiAliasType = AntiAliasType.ADVANCED;
++                     mLabel.defaultTextFormat = new TextFormat("Verdana",9,58879,true,null,null,null,null,"center");
++                     mLabel.filters = [new GlowFilter(0,1,3,3,3,1)];
++                     this._miniMapMarkers.addChild(mLabel);
++                     fLabel = new TextField();
++                     fLabel.width = 160;
++                     fLabel.height = 36;
++                     fLabel.selectable = false;
++                     fLabel.mouseEnabled = false;
++                     fLabel.embedFonts = false;
++                     fLabel.antiAliasType = AntiAliasType.ADVANCED;
++                     fLabel.defaultTextFormat = new TextFormat("Verdana",11,58879,true,null,null,null,null,"center");
++                     fLabel.filters = [new GlowFilter(0,1,4,4,3,1)];
++                     if(this._mapMarkers != null)
++                     {
++                        this._mapMarkers.addChild(fLabel);
++                     }
++                     markerData = {
++                        "iconData":iconBmpData,
++                        "miniBmp":mBmp,
++                        "fullBmp":fBmp,
++                        "miniLabel":mLabel,
++                        "fullLabel":fLabel,
++                        "hair":rp.hairIndex,
++                        "head":rp.headIndex,
++                        "color":rp.hairColorIndex,
++                        "gender":rp.gender
++                     };
++                     this._remotePlayerMapIcons[rp] = markerData;
++                  }
++                  else if(markerData.hair != rp.hairIndex || markerData.head != rp.headIndex || markerData.color != rp.hairColorIndex || markerData.gender != rp.gender)
++                  {
++                     markerData.hair = rp.hairIndex;
++                     markerData.head = rp.headIndex;
++                     markerData.color = rp.hairColorIndex;
++                     markerData.gender = rp.gender;
++                     newIcon = this.createCharacterMapIcon(rp,true);
++                     if(markerData.iconData != null)
++                     {
++                        markerData.iconData.dispose();
++                     }
++                     markerData.iconData = newIcon;
++                     markerData.miniBmp.bitmapData = newIcon;
++                     markerData.fullBmp.bitmapData = newIcon;
++                  }
++                  rpMiniX = this._miniMapBitmap.x + rp.center.x / (Context.world.tilesX * Tile.SIZE) * this._miniMapBitmap.width;
++                  rpMiniY = this._miniMapBitmap.y + rp.center.y / (Context.world.tilesY * Tile.SIZE) * this._miniMapBitmap.height;
++                  this.positionPlayerMapIcon(markerData.miniBmp,this._miniMapBitmap,rp,22);
++                  markerData.miniBmp.visible = true;
++                  actionText = this.getPlayerActionText(rp,isRu);
++                  markerData.miniLabel.text = rp.name + "\n" + actionText;
++                  markerData.miniLabel.x = Math.max(8,Math.min(MINI_MAP_WIDTH - markerData.miniLabel.width - 8,Math.round(rpMiniX - markerData.miniLabel.width * 0.5)));
++                  markerData.miniLabel.y = Math.max(30,Math.min(134,Math.round(rpMiniY - 26)));
++                  markerData.miniLabel.visible = true;
++                  if(this._mapOpen && this._mapMarkers != null && this._mapBitmap != null && this._mapBitmap.width > 0)
++                  {
++                     rpFullX = this._mapBitmap.x + rp.center.x / (Context.world.tilesX * Tile.SIZE) * this._mapBitmap.width;
++                     rpFullY = this._mapBitmap.y + rp.center.y / (Context.world.tilesY * Tile.SIZE) * this._mapBitmap.height;
++                     this.positionPlayerMapIcon(markerData.fullBmp,this._mapBitmap,rp,42);
++                     markerData.fullBmp.visible = true;
++                     markerData.fullLabel.text = rp.name + " (" + rp.health + " HP)\n" + actionText;
++                     markerData.fullLabel.x = Math.round(rpFullX - markerData.fullLabel.width * 0.5);
++                     markerData.fullLabel.y = Math.round(rpFullY - 44);
++                     markerData.fullLabel.visible = true;
++                  }
++                  else
++                  {
++                     markerData.fullBmp.visible = false;
++                     markerData.fullLabel.visible = false;
++                  }
++               }
++            }
++            for(activeKey in this._remotePlayerMapIcons)
++            {
++               if(!activeRps[activeKey])
++               {
++                  oldData = this._remotePlayerMapIcons[activeKey];
++                  if(oldData != null)
++                  {
++                     if(oldData.miniBmp != null && oldData.miniBmp.parent != null)
++                     {
++                        oldData.miniBmp.parent.removeChild(oldData.miniBmp);
++                     }
++                     if(oldData.fullBmp != null && oldData.fullBmp.parent != null)
++                     {
++                        oldData.fullBmp.parent.removeChild(oldData.fullBmp);
++                     }
++                     if(oldData.miniLabel != null && oldData.miniLabel.parent != null)
++                     {
++                        oldData.miniLabel.parent.removeChild(oldData.miniLabel);
++                     }
++                     if(oldData.fullLabel != null && oldData.fullLabel.parent != null)
++                     {
++                        oldData.fullLabel.parent.removeChild(oldData.fullLabel);
++                     }
++                     if(oldData.iconData != null)
++                     {
++                        oldData.iconData.dispose();
++                     }
++                  }
++                  delete this._remotePlayerMapIcons[activeKey];
++               }
++            }
++            this.drawMapViewport(this._miniMapMarkers,this._miniMapBitmap);
++         }
++         catch(mapErr:Error)
++         {
++         }
++      }
++
++      private function getPlayerActionText(param1:ControlCharacterEntity, isRu:Boolean) : String
++      {
++         if(param1 == null)
++         {
++            return "";
++         }
++         if(!param1.alive)
++         {
++            return isRu ? "[Мёртв]" : "[Dead]";
++         }
++         if(param1.itemInHand != null)
++         {
++            var itemTitle:String = "";
++            if(param1.itemInHand.name != null && param1.itemInHand.name.length > 0)
++            {
++               itemTitle = param1.itemInHand.name;
++            }
++            else if(param1.itemInHand.nameKey != null)
++            {
++               itemTitle = param1.itemInHand.nameKey;
++            }
++            if(param1.itemInHand is MiningItem || param1.itemInHand is ToolItem)
++            {
++               return (isRu ? "[Добыча: " : "[Mining: ") + itemTitle + "]";
++            }
++            if(param1.itemInHand is WeaponItem || param1.itemInHand is MeleeWeaponItem || param1.itemInHand is RangedWeaponItem)
++            {
++               return (isRu ? "[Оружие: " : "[Weapon: ") + itemTitle + "]";
++            }
++            if(param1.itemInHand is BlockItem || param1.itemInHand is WallItem)
++            {
++               return (isRu ? "[Стройка: " : "[Building: ") + itemTitle + "]";
++            }
++            if(param1.itemInHand is ConsumableItem)
++            {
++               return (isRu ? "[Припас: " : "[Item: ") + itemTitle + "]";
++            }
++            return "[" + itemTitle + "]";
++         }
++         if(Math.abs(param1.velocity.x) > 0.5 || Math.abs(param1.velocity.y) > 0.5)
++         {
++            return isRu ? "[В пути]" : "[Moving]";
++         }
++         return isRu ? "[Свободен]" : "[Idle]";
++      }
++
++      private function cleanupRemotePlayerMapIcons() : void
++      {
++         for(var activeKey in this._remotePlayerMapIcons)
++         {
++            var oldData:Object = this._remotePlayerMapIcons[activeKey];
++            if(oldData != null)
++            {
++               if(oldData.miniBmp != null && oldData.miniBmp.parent != null)
++               {
++                  oldData.miniBmp.parent.removeChild(oldData.miniBmp);
++               }
++               if(oldData.fullBmp != null && oldData.fullBmp.parent != null)
++               {
++                  oldData.fullBmp.parent.removeChild(oldData.fullBmp);
++               }
++               if(oldData.miniLabel != null && oldData.miniLabel.parent != null)
++               {
++                  oldData.miniLabel.parent.removeChild(oldData.miniLabel);
++               }
++               if(oldData.fullLabel != null && oldData.fullLabel.parent != null)
++               {
++                  oldData.fullLabel.parent.removeChild(oldData.fullLabel);
++               }
++               if(oldData.iconData != null)
++               {
++                  oldData.iconData.dispose();
++               }
++            }
++            delete this._remotePlayerMapIcons[activeKey];
++         }
++      }
++
++      private function positionPlayerMapIcon(param1:Bitmap, param2:Bitmap, param3:CreatureEntity, param4:Number) : void
++      {
++         if(param1 == null || param2 == null || param3 == null)
++         {
++            return;
++         }
++         var _loc5_:Number = param2.x + param3.center.x / (Context.world.tilesX * Tile.SIZE) * param2.width;
++         var _loc6_:Number = param2.y + param3.center.y / (Context.world.tilesY * Tile.SIZE) * param2.height;
++         param1.width = param4;
++         param1.height = param4;
++         param1.scaleX = Math.abs(param1.scaleX) * (param3.direction < 0 ? -1 : 1);
++         param1.x = Math.round(_loc5_ + (param3.direction < 0 ? param4 * 0.5 : -param4 * 0.5));
++         param1.y = Math.round(_loc6_ - param4 * 0.5);
++      }
++
++      private function mapPositionRevealed(param1:CreatureEntity) : Boolean
++      {
++         if(param1 == null || this._mapVisited == null)
++         {
++            return false;
++         }
++         var _loc2_:int = Math.max(0,Math.min(Context.world.tilesX - 1,int(param1.center.x / Tile.SIZE)));
++         var _loc3_:int = Math.max(0,Math.min(Context.world.tilesY - 1,int(param1.center.y / Tile.SIZE)));
++         return this._mapVisited[_loc2_ + _loc3_ * Context.world.tilesX] != 0;
++      }
++
++      private function drawMapMarker(param1:Sprite, param2:Bitmap, param3:CreatureEntity, param4:uint, param5:Number) : void
++      {
++         if(param1 == null || param2 == null || param3 == null)
++         {
++            return;
++         }
++         var _loc6_:Number = param2.x + param3.center.x / (Context.world.tilesX * Tile.SIZE) * param2.width;
++         var _loc7_:Number = param2.y + param3.center.y / (Context.world.tilesY * Tile.SIZE) * param2.height;
++         param1.graphics.beginFill(param4,0.22);
++         param1.graphics.lineStyle(0,0,0);
++         param1.graphics.drawCircle(_loc6_,_loc7_,param5 + 2.5);
++         param1.graphics.endFill();
++         param1.graphics.beginFill(param4,1);
++         param1.graphics.lineStyle(1,16777215,0.9);
++         param1.graphics.drawCircle(_loc6_,_loc7_,param5);
++         param1.graphics.endFill();
++      }
++
++      private function drawMapViewport(param1:Sprite, param2:Bitmap) : void
++      {
++         var _loc3_:Number = param2.x + Context.screen.x / (Context.world.tilesX * Tile.SIZE) * param2.width;
++         var _loc4_:Number = param2.y + Context.screen.y / (Context.world.tilesY * Tile.SIZE) * param2.height;
++         var _loc5_:Number = (Context.screen.endX - Context.screen.x) / (Context.world.tilesX * Tile.SIZE) * param2.width;
++         var _loc6_:Number = (Context.screen.endY - Context.screen.y) / (Context.world.tilesY * Tile.SIZE) * param2.height;
++         param1.graphics.lineStyle(1,16777215,0.75);
++         param1.graphics.drawRect(_loc3_,_loc4_,_loc5_,_loc6_);
++      }
++
++      private function createGameChat() : void
++      {
++         this._gameChatPanel = new Sprite();
++         addChild(this._gameChatPanel);
++         this._gameChatHistoryBackground = new Sprite();
++         this._gameChatHistoryBackground.graphics.beginFill(0,0.45);
++         this._gameChatHistoryBackground.graphics.drawRoundRect(2,3,430,126,16,16);
++         this._gameChatHistoryBackground.graphics.endFill();
++         this._gameChatHistoryBackground.graphics.lineStyle(1.5,2000534,0.95,true);
++         this._gameChatHistoryBackground.graphics.beginFill(664363,0.88);
++         this._gameChatHistoryBackground.graphics.drawRoundRect(0,0,430,126,16,16);
++         this._gameChatHistoryBackground.graphics.endFill();
++         this._gameChatHistoryBackground.graphics.lineStyle(1,2801108,0.45,true);
++         this._gameChatHistoryBackground.graphics.moveTo(12,2);
++         this._gameChatHistoryBackground.graphics.lineTo(418,2);
++         this._gameChatPanel.addChild(this._gameChatHistoryBackground);
++         this._gameChatHistory = new TextField();
++         this._gameChatHistory.x = 12;
++         this._gameChatHistory.y = 8;
++         this._gameChatHistory.width = 406;
++         this._gameChatHistory.height = 110;
++         this._gameChatHistory.multiline = true;
++         this._gameChatHistory.wordWrap = true;
++         this._gameChatHistory.selectable = false;
++         this._gameChatHistory.mouseEnabled = false;
++         this._gameChatHistory.embedFonts = false;
++         this._gameChatHistory.antiAliasType = AntiAliasType.ADVANCED;
++         this._gameChatHistory.defaultTextFormat = new TextFormat("Segoe UI Emoji",14,16777215);
++         this._gameChatHistory.filters = [new GlowFilter(0,1,2.5,2.5,3,1)];
++         this._gameChatPanel.addChild(this._gameChatHistory);
++         this._gameChatInputBackground = new Sprite();
++         this._gameChatInputBackground.y = 132;
++         this._gameChatInputBackground.graphics.beginFill(0,0.45);
++         this._gameChatInputBackground.graphics.drawRoundRect(1,2,430,32,14,14);
++         this._gameChatInputBackground.graphics.endFill();
++         this._gameChatInputBackground.graphics.lineStyle(1.5,2400436,1,true);
++         this._gameChatInputBackground.graphics.beginFill(465698,0.95);
++         this._gameChatInputBackground.graphics.drawRoundRect(0,0,430,32,14,14);
++         this._gameChatInputBackground.graphics.endFill();
++         this._gameChatPanel.addChild(this._gameChatInputBackground);
++         this._gameChatInput = new TextField();
++         this._gameChatInput.x = 12;
++         this._gameChatInput.y = 135;
++         this._gameChatInput.width = 406;
++         this._gameChatInput.height = 25;
++         this._gameChatInput.type = TextFieldType.INPUT;
++         this._gameChatInput.selectable = true;
++         this._gameChatInput.mouseEnabled = true;
++         this._gameChatInput.tabEnabled = false;
++         this._gameChatInput.maxChars = 180;
++         this._gameChatInput.embedFonts = false;
++         this._gameChatInput.antiAliasType = AntiAliasType.ADVANCED;
++         this._gameChatInput.defaultTextFormat = new TextFormat("Segoe UI Emoji",14,16777215);
++         this._gameChatInput.textColor = 16777215;
++         this._gameChatInput.filters = [new GlowFilter(0,1,2,2,2,1)];
++         this._gameChatPanel.addChild(this._gameChatInput);
++         this._commandHintPanel = new Sprite();
++         this._commandHintPanel.visible = false;
++         this._gameChatPanel.addChild(this._commandHintPanel);
++         this._commandHintText = new TextField();
++         this._commandHintText.x = 8;
++         this._commandHintText.y = 4;
++         this._commandHintText.width = 414;
++         this._commandHintText.height = 24;
++         this._commandHintText.multiline = true;
++         this._commandHintText.wordWrap = true;
++         this._commandHintText.selectable = false;
++         this._commandHintText.mouseEnabled = false;
++         this._commandHintText.embedFonts = false;
++         this._commandHintText.antiAliasType = AntiAliasType.ADVANCED;
++         var hintFmt:TextFormat = new TextFormat("Segoe UI",13,8186078);
++         this._commandHintText.defaultTextFormat = hintFmt;
++         this._commandHintPanel.addChild(this._commandHintText);
++         this._gameChatInputBackground.visible = false;
++         this._gameChatInput.visible = false;
++         this._gameChatPanel.visible = false;
++         this._gameChatTypingLabel = new TextField();
++         this._gameChatTypingLabel.x = 12;
++         this._gameChatTypingLabel.y = 165;
++         this._gameChatTypingLabel.width = 320;
++         this._gameChatTypingLabel.height = 17;
++         this._gameChatTypingLabel.selectable = false;
++         this._gameChatTypingLabel.mouseEnabled = false;
++         this._gameChatTypingLabel.defaultTextFormat = new TextFormat("Verdana",11,65535,false,true);
++         this._gameChatTypingLabel.filters = [new GlowFilter(0,1,2,2,2,1)];
++         this._gameChatTypingLabel.visible = false;
++         this._gameChatPanel.addChild(this._gameChatTypingLabel);
++         this._gameChatFadeTimer = new Timer(9000,1);
++         this.positionGameChat();
++      }
++
++      private function updateGameChatAvailability() : void
++      {
++         if(this._gameChatPanel == null)
++         {
++            return;
++         }
++         if(Context.multiplayer == null || !Context.multiplayer.active)
++         {
++            this._gameChatPanel.visible = false;
++            this._gameChatOpen = false;
++            if(Context.multiplayer != null)
++            {
++               Context.multiplayer.chatInputActive = false;
++            }
++         }
++      }
++
++      private function positionGameChat() : void
++      {
++         if(this._gameChatPanel == null || stage == null)
++         {
++            return;
++         }
++         this._gameChatPanel.x = 16;
++         this._gameChatPanel.y = Math.max(64,stage.stageHeight - (this._bottomPanel != null ? this._bottomPanel.height : 0) - 182);
++      }
++
++      private function _gameChatShortcut_OnKeyDown(param1:KeyboardEvent) : void
++      {
++         if(param1.keyCode == Key.TAB)
++         {
++            if(this._gameChatOpen && this._gameChatInput != null && stage != null && stage.focus == this._gameChatInput)
++            {
++               param1.preventDefault();
++               param1.stopImmediatePropagation();
++               this.autocompleteCommand();
++               return;
++            }
++            param1.preventDefault();
++            param1.stopImmediatePropagation();
++            return;
++         }
++         if(this._mapOpen)
++         {
++            if(param1.keyCode == Keyboard.ESCAPE)
++            {
++               param1.preventDefault();
++               param1.stopImmediatePropagation();
++               if(Context.multiplayer != null)
++               {
++                  Context.multiplayer.suppressPauseOnce = true;
++               }
++               this.closeWorldMap();
++            }
++            return;
++         }
++         if(this._gameChatOpen)
++         {
++            return;
++         }
++         if(Context.multiplayer != null && Context.multiplayer.active && (param1.keyCode == Keyboard.ENTER || param1.keyCode == Keyboard.T || param1.keyCode == 191))
++         {
++            param1.preventDefault();
++            param1.stopImmediatePropagation();
++            this.openGameChat(param1.keyCode == 191 ? "/" : "");
++         }
++      }
++
++      private function openGameChat(initialText:String = "") : void
++      {
++         if(Context.multiplayer == null || !Context.multiplayer.active || this._gameChatInput == null)
++         {
++            return;
++         }
++         this._gameChatOpen = true;
++         Context.multiplayer.chatInputActive = true;
++         Context.input.freeAll();
++         this._gameChatPanel.visible = true;
++         this._gameChatInputBackground.visible = true;
++         this._gameChatInput.visible = true;
++         this._gameChatInput.text = initialText != null ? initialText : "";
++         if(this._gameChatFadeTimer != null)
++         {
++            this._gameChatFadeTimer.stop();
++         }
++         if(stage != null)
++         {
++            stage.focus = this._gameChatInput;
++            var pos:int = this._gameChatInput.text.length;
++            this._gameChatInput.setSelection(pos,pos);
++         }
++         this.updateCommandHints();
++      }
++
++      private function closeGameChat() : void
++      {
++         this._gameChatOpen = false;
++         if(this._commandHintPanel != null)
++         {
++            this._commandHintPanel.visible = false;
++         }
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.chatInputActive = false;
++         }
++         Context.input.freeAll();
++         this._gameChatInputBackground.visible = false;
++         this._gameChatInput.visible = false;
++         if(stage != null && stage.focus == this._gameChatInput)
++         {
++            stage.focus = null;
++         }
++         if(this._gameChatMessages.length == 0)
++         {
++            this._gameChatPanel.visible = false;
++         }
++         else
++         {
++            this.restartGameChatFade();
++         }
++      }
++
++      private function _gameChatInput_OnKeyDown(param1:KeyboardEvent) : void
++      {
++         param1.stopImmediatePropagation();
++         if(param1.keyCode == Keyboard.TAB)
++         {
++            param1.preventDefault();
++            this.autocompleteCommand();
++         }
++         else if(param1.keyCode == Keyboard.ENTER)
++         {
++            param1.preventDefault();
++            this.sendGameChatMessage();
++         }
++         else if(param1.keyCode == Keyboard.ESCAPE)
++         {
++            param1.preventDefault();
++            if(Context.multiplayer != null)
++            {
++               Context.multiplayer.suppressPauseOnce = true;
++            }
++            this.closeGameChat();
++         }
++         else if(Context.multiplayer != null)
++         {
++            Context.multiplayer.sendTyping(true);
++         }
++      }
++
++      private function _gameChatInput_OnFocusOut(param1:FocusEvent) : void
++      {
++         if(this._gameChatOpen && (stage == null || stage.focus != this._gameChatInput))
++         {
++            this.closeGameChat();
++         }
++      }
++
++      private function _gameChatInput_OnKeyUp(param1:KeyboardEvent) : void
++      {
++         param1.stopImmediatePropagation();
++         this.updateCommandHints();
++      }
++
++      private function updateCommandHints() : void
++      {
++         if(this._commandHintPanel == null || this._commandHintText == null || this._gameChatInput == null)
++         {
++            return;
++         }
++         var txt:String = this._gameChatInput.text;
++         if(txt.length == 0 || txt.charAt(0) != "/")
++         {
++            this._commandHintPanel.visible = false;
++            return;
++         }
++         var prefix:String = txt.split(/\s+/)[0].toLowerCase();
++         var matches:Array = [];
++         var i:int = 0;
++         while(i < AVAILABLE_COMMANDS.length)
++         {
++            var cmd:String = String(AVAILABLE_COMMANDS[i]);
++            if(cmd.indexOf(prefix) == 0)
++            {
++               var usage:String = String(COMMAND_USAGE[cmd]);
++               matches.push(usage != null ? usage : cmd);
++            }
++            i++;
++         }
++         if(matches.length == 0)
++         {
++            this._commandHintPanel.visible = false;
++            return;
++         }
++         this._commandHintText.text = matches.join("\n");
++         var lineCount:int = int(matches.length);
++         var hintH:Number = Math.max(26,lineCount * 18 + 8);
++         var hintW:Number = 430;
++         this._commandHintPanel.graphics.clear();
++         this._commandHintPanel.graphics.beginFill(662560,0.92);
++         this._commandHintPanel.graphics.drawRoundRect(0,0,hintW,hintH,6,6);
++         this._commandHintPanel.graphics.endFill();
++         this._commandHintPanel.graphics.lineStyle(1.5,2470054,0.9,true);
++         this._commandHintPanel.graphics.drawRoundRect(0,0,hintW,hintH,6,6);
++         this._commandHintText.height = hintH - 6;
++         this._commandHintPanel.y = 132 - hintH - 4;
++         this._commandHintPanel.visible = true;
++      }
++
++      private function autocompleteCommand() : void
++      {
++         if(this._gameChatInput == null)
++         {
++            return;
++         }
++         var txt:String = this._gameChatInput.text;
++         if(txt.length == 0 || txt.charAt(0) != "/")
++         {
++            return;
++         }
++         var parts:Array = txt.split(/\s+/);
++         if(parts.length <= 1)
++         {
++            var prefix:String = String(parts[0]).toLowerCase();
++            var i:int = 0;
++            while(i < AVAILABLE_COMMANDS.length)
++            {
++               var cmd:String = String(AVAILABLE_COMMANDS[i]);
++               if(cmd.indexOf(prefix) == 0)
++               {
++                  this._gameChatInput.text = cmd + " ";
++                  var len:int = this._gameChatInput.text.length;
++                  this._gameChatInput.setSelection(len,len);
++                  this.updateCommandHints();
++                  return;
++               }
++               i++;
++            }
++         }
++      }
++
++      private function sendGameChatMessage() : void
++      {
++         if(Context.multiplayer == null || !Context.multiplayer.active)
++         {
++            this.closeGameChat();
++            return;
++         }
++         var msg:String = this._gameChatInput.text.replace(/^\s+|\s+$/g,"");
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.sendTyping(false);
++         }
++         if(msg.length > 0)
++         {
++            if(Context.multiplayer.sendChat(msg))
++            {
++               this.onGameChatMessage((Context.app._choosedLanguage == "ru" ? "Вы" : "You") + " (" + Context.multiplayer.localNickname + "): " + msg);
++            }
++         }
++         this.closeGameChat();
++      }
++
++      private function onGameChatMessage(param1:String) : void
++      {
++         if(this._gameChatHistory == null || Context.multiplayer == null || !Context.multiplayer.active)
++         {
++            return;
++         }
++         this._gameChatMessages.push(param1);
++         while(this._gameChatMessages.length > 7)
++         {
++            this._gameChatMessages.shift();
++         }
++         this._gameChatHistory.text = this._gameChatMessages.join("\n");
++         this._gameChatHistory.scrollV = this._gameChatHistory.maxScrollV;
++         this._gameChatPanel.visible = true;
++         if(!this._gameChatOpen)
++         {
++            this.restartGameChatFade();
++         }
++      }
++
++      private function restartGameChatFade() : void
++      {
++         if(this._gameChatFadeTimer != null)
++         {
++            this._gameChatFadeTimer.reset();
++            this._gameChatFadeTimer.start();
++         }
++      }
++
++      private function _gameChatFadeTimer_OnComplete(param1:TimerEvent) : void
++      {
++         if(!this._gameChatOpen && this._gameChatPanel != null)
++         {
++            this._gameChatPanel.visible = false;
++         }
+       }
+ 
+       override protected function onStageResize() : void
+@@ -398,6 +2379,22 @@
+          {
+             return;
+          }
++         if(this._mapOpen)
++         {
++            param1.preventDefault();
++            param1.stopImmediatePropagation();
++            if(param1.delta > 0)
++            {
++               this._mapZoom = Math.min(6,this._mapZoom * 1.25);
++            }
++            else if(param1.delta < 0)
++            {
++               this._mapZoom = Math.max(1,this._mapZoom / 1.25);
++            }
++            this.positionWorldMap();
++            this.updateMapMarkers();
++            return;
++         }
+          var _loc2_:Controller = Context.game.controller;
+          if(param1.delta > 0)
+          {
+@@ -443,5 +2440,317 @@
+       {
+          Context.game.showBookTraveler();
+       }
++
++      private function updateLiveOverlays() : void
++      {
++         if(Context.multiplayer != null && Context.multiplayer.xrayEnabled)
++         {
++            this.updateXray();
++         }
++         else if(this._xrayOverlay != null)
++         {
++            this._xrayOverlay.graphics.clear();
++            this._xrayOverlay.visible = false;
++         }
++         this.updateMapHoverTooltip();
++         if(this._gameChatTypingLabel != null)
++         {
++            var typingText:String = Context.multiplayer != null ? Context.multiplayer.getTypingText() : "";
++            this._gameChatTypingLabel.text = typingText;
++            this._gameChatTypingLabel.visible = typingText.length > 0;
++            if(typingText.length > 0 && this._gameChatPanel != null)
++            {
++               this._gameChatPanel.visible = true;
++            }
++         }
++      }
++
++      private function updateXray() : void
++      {
++         if(this._xrayOverlay == null || Context.world == null || Context.world.tiles == null || Context.game == null)
++         {
++            return;
++         }
++         var scr:OrionScreen = Context.game.screen;
++         if(scr == null)
++         {
++            return;
++         }
++         this._xrayOverlay.visible = true;
++         this._xrayOverlay.graphics.clear();
++         var startX:int = Math.max(0,scr.tileX - 1);
++         var endX:int = Math.min(Context.world.tilesX - 1,scr.endTileX + 1);
++         var startY:int = Math.max(0,scr.tileY - 1);
++         var endY:int = Math.min(Context.world.tilesY - 1,scr.endTileY + 1);
++         var zoom:Number = OrionScreen.currentZoom;
++         var tileSize:Number = 32 * zoom;
++         var ty:int = startY;
++         while(ty <= endY)
++         {
++            var tx:int = startX;
++            while(tx <= endX)
++            {
++               var tile:Tile = Context.world.tiles[tx + ty * Context.world.tilesX];
++               if(tile != null && tile.blockId != 0)
++               {
++                  var bId:int = tile.blockId;
++                  var fillColor:uint = 0;
++                  var borderColor:uint = 0;
++                  if(bId == 5)
++                  {
++                     fillColor = 3426654;
++                     borderColor = 12435655;
++                  }
++                  else if(bId == 167)
++                  {
++                     fillColor = 13849600;
++                     borderColor = 15965202;
++                  }
++                  else if(bId == 6)
++                  {
++                     fillColor = 8358797;
++                     borderColor = 16777215;
++                  }
++                  else if(bId == 7)
++                  {
++                     fillColor = 15845135;
++                     borderColor = 16771899;
++                  }
++                  else if(bId == 8)
++                  {
++                     fillColor = 58879;
++                     borderColor = 1638399;
++                  }
++                  else if(bId == 9)
++                  {
++                     fillColor = 16717636;
++                     borderColor = 16732754;
++                  }
++                  else if(bId == 51 || bId == 199 || bId == 156)
++                  {
++                     fillColor = 11141375;
++                     borderColor = 14696699;
++                  }
++                  else if(bId == 78 || bId == 79)
++                  {
++                     fillColor = 16711807;
++                     borderColor = 16728193;
++                  }
++                  if(borderColor != 0)
++                  {
++                     var sx:Number = (tx * 32 - scr.x) * zoom;
++                     var sy:Number = (ty * 32 - scr.y) * zoom;
++                     this._xrayOverlay.graphics.lineStyle(2,borderColor,0.95,true);
++                     this._xrayOverlay.graphics.beginFill(fillColor,0.42);
++                     this._xrayOverlay.graphics.drawRoundRect(sx + 1,sy + 1,tileSize - 2,tileSize - 2,4,4);
++                     this._xrayOverlay.graphics.endFill();
++                  }
++               }
++               tx++;
++            }
++            ty++;
++         }
++      }
++
++      private function updateMapHoverTooltip() : void
++      {
++         if(!this._mapOpen || this._mapBitmap == null || Context.world == null || Context.world.tiles == null || stage == null)
++         {
++            if(this._mapTooltip != null)
++            {
++               this._mapTooltip.visible = false;
++            }
++            return;
++         }
++         var mx:Number = this._mapOverlay.mouseX;
++         var my:Number = this._mapOverlay.mouseY;
++         var bx:Number = this._mapBitmap.x;
++         var by:Number = this._mapBitmap.y;
++         var bw:Number = this._mapBitmap.width;
++         var bh:Number = this._mapBitmap.height;
++         if(mx >= bx && mx < bx + bw && my >= by && my < by + bh && bw > 0 && bh > 0)
++         {
++            var tx:int = int((mx - bx) / bw * Context.world.tilesX);
++            var ty:int = int((my - by) / bh * Context.world.tilesY);
++            if(tx >= 0 && tx < Context.world.tilesX && ty >= 0 && ty < Context.world.tilesY)
++            {
++               var tile:Tile = Context.world.tiles[tx + ty * Context.world.tilesX];
++               var bName:String = this.getBlockOrTileName(tile);
++               if(bName != null && bName.length > 0)
++               {
++                  this._mapTooltipText.text = "X: " + tx + "  Y: " + ty + "  •  " + bName;
++                  var tw:Number = this._mapTooltipText.textWidth + 18;
++                  var th:Number = 24;
++                  this._mapTooltip.graphics.clear();
++                  this._mapTooltip.graphics.lineStyle(1.5,58879,0.95,true);
++                  this._mapTooltip.graphics.beginFill(465702,0.92);
++                  this._mapTooltip.graphics.drawRoundRect(0,0,tw,th,6,6);
++                  this._mapTooltip.graphics.endFill();
++                  this._mapTooltip.x = Math.max(10,Math.min(stage.stageWidth - tw - 10,mx + 16));
++                  this._mapTooltip.y = Math.max(10,Math.min(stage.stageHeight - th - 10,my + 16));
++                  this._mapTooltip.visible = true;
++                  if(this._mapOverlay.contains(this._mapTooltip))
++                  {
++                     this._mapOverlay.setChildIndex(this._mapTooltip,this._mapOverlay.numChildren - 1);
++                  }
++                  return;
++               }
++            }
++         }
++         if(this._mapTooltip != null)
++         {
++            this._mapTooltip.visible = false;
++         }
++      }
++
++      private function getBlockOrTileName(tile:Tile) : String
++      {
++         var bId:int;
++         var blk:Block;
++         var w:Wall;
++         if(tile == null)
++         {
++            return null;
++         }
++         bId = tile.blockId;
++         if(bId == 5)
++         {
++            return "Угольная руда";
++         }
++         if(bId == 167)
++         {
++            return "Бронзовая руда";
++         }
++         if(bId == 6)
++         {
++            return "Железная руда";
++         }
++         if(bId == 7)
++         {
++            return "Золотая руда";
++         }
++         if(bId == 8)
++         {
++            return "Алмазная руда";
++         }
++         if(bId == 9)
++         {
++            return "Огненная руда";
++         }
++         if(bId == 51)
++         {
++            return "Сундук";
++         }
++         if(bId == 199)
++         {
++            return "Золотой сундук";
++         }
++         if(bId == 156)
++         {
++            return "Сундук сокровищ";
++         }
++         if(bId == 78)
++         {
++            return "Кристалл жизни";
++         }
++         if(bId == 79)
++         {
++            return "Основание кристалла жизни";
++         }
++         if(bId == Block.CORE.id)
++         {
++            return "Ядро";
++         }
++         if(bId == Block.BEDROCK.id)
++         {
++            return "Коренная порода";
++         }
++         if(bId == Block.OBSIDIAN.id)
++         {
++            return "Обсидиан";
++         }
++         if(bId == Block.STONE.id)
++         {
++            return "Камень";
++         }
++         if(bId == Block.DIRT.id)
++         {
++            return "Земля";
++         }
++         if(bId == Block.PLOWED_DIRT.id)
++         {
++            return "Вспаханная земля";
++         }
++         if(bId == Block.GRASS.id)
++         {
++            return "Трава";
++         }
++         if(bId == Block.TALL_GRASS.id)
++         {
++            return "Высокая трава";
++         }
++         if(bId == Block.TREE.id)
++         {
++            return "Дерево";
++         }
++         if(bId == Block.WOOD.id)
++         {
++            return "Древесина";
++         }
++         if(bId == Block.SAND.id)
++         {
++            return "Песок";
++         }
++         if(bId == Block.CLAY.id)
++         {
++            return "Глина";
++         }
++         if(bId != 0)
++         {
++            try
++            {
++               blk = Block.BLOCKS[bId];
++               if(blk != null && blk.item != null && blk.item.name != null && blk.item.name.length > 0)
++               {
++                  return blk.item.name;
++               }
++            }
++            catch(eB:Error)
++            {
++            }
++            return "Блок #" + bId;
++         }
++         if(tile.liquidId != 0)
++         {
++            if(tile.liquidId == 1)
++            {
++               return "Вода";
++            }
++            if(tile.liquidId == 2)
++            {
++               return "Лава";
++            }
++            if(tile.liquidId == 3)
++            {
++               return "Кислота";
++            }
++            return "Жидкость #" + tile.liquidId;
++         }
++         if(tile.wallId != 0)
++         {
++            try
++            {
++               w = Wall.WALLS[tile.wallId];
++               if(w != null && w.item != null && w.item.name != null && w.item.name.length > 0)
++               {
++                  return "Стена: " + w.item.name;
++               }
++            }
++            catch(eW:Error)
++            {
++            }
++         }
++         return null;
++      }
+    }
+ }

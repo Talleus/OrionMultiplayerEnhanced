@@ -1,0 +1,1188 @@
+--- a/App.as
++++ b/App.as
+@@ -40,6 +40,7 @@
+    import orion.events.*;
+    import orion.games.*;
+    import orion.inventories.*;
++   import orion.multiplayer.*;
+    import orion.quality.*;
+    import orion.sounds.*;
+    import orion.ui.*;
+@@ -61,6 +62,8 @@
+ 
+       public static const SAVING_WAITING:int = 2;
+ 
++      public static var _crashLogCount:int = 0;
++
+       public var console:Console;
+ 
+       public var logger:ILogger;
+@@ -71,6 +74,8 @@
+ 
+       public var saver:GameSaver;
+ 
++      public var multiplayer:MultiplayerManager;
++
+       private var _confirmCallback:Function;
+ 
+       private var _errorDialogShown:Boolean;
+@@ -80,6 +85,12 @@
+       public var _waitingScreen:WaitingScreenUI;
+ 
+       private var saveDataObject:SharedObject;
++
++      private var _activeMultiplayerWorldId:String;
++
++      private var _gameStarting:Boolean = false;
++
++      public var _activeSingleWorldId:String = null;
+ 
+       public var _choosedLanguage:String = "en";
+ 
+@@ -165,7 +176,7 @@
+          {
+             addEventListener(Event.ADDED_TO_STAGE,this.init);
+          }
+-         NativeApplication.nativeApplication.addEventListener(InvokeEvent.INVOKE,this.onInvoke);
++         NativeApplication.nativeApplication.addEventListener("invoke",this.onInvoke);
+       }
+ 
+       public function get soundEnabled() : Boolean
+@@ -181,10 +192,10 @@
+          SettingsProvider.setSettings(_loc2_);
+       }
+ 
+-      private function onInvoke(param1:InvokeEvent) : void
++      private function onInvoke(param1:Object) : void
+       {
+          var quota:Array = null;
+-         var invokeEvent:InvokeEvent = param1;
++         var invokeEvent:Object = param1;
+          this.Steamworks.addEventListener(SteamEvent.STEAM_RESPONSE,this.onSteamResponse);
+          this.Steamworks.addOverlayWorkaround(stage,true);
+          NativeApplication.nativeApplication.addEventListener(Event.EXITING,this.onExit);
+@@ -560,22 +571,83 @@
+ 
+       private function showLobby() : void
+       {
++         this.hideWaiting();
++         this._gameStarting = false;
+          this.setBackgroundCaption(null);
+          this.lobby = new LobbyScreenUI(this);
+       }
+ 
+       public function startGame() : void
+       {
++         var slot:SharedObject = null;
++         var worldBytes:ByteArray = null;
++         var storedPlayer:Object = null;
++         var planetDecoder:PlanetDecoder = null;
++         var entry:Object = null;
++         if(this._gameStarting)
++         {
++            return;
++         }
++         this._gameStarting = true;
+          if(this.lobby != null)
+          {
+             this.lobby.dispose();
+             this.lobby = null;
+          }
+-         this.loadAndRunGame();
++         Context.savingType = SavingType.LOCAL;
++         entry = this.getSelectedSingleWorld();
++         if(entry == null)
++         {
++            this._gameStarting = false;
++            return;
++         }
++         this._activeSingleWorldId = String(entry.id);
++         slot = SharedObject.getLocal(this.getSingleWorldStorageName(this._activeSingleWorldId));
++         worldBytes = slot.data.world as ByteArray;
++         storedPlayer = slot.data.player;
++         try
++         {
++            slot.close();
++         }
++         catch(slotError:Error)
++         {
++         }
++         if(worldBytes == null || worldBytes.length == 0)
++         {
++            this.createPlanetAndRunGame();
++            return;
++         }
++         this.setBackgroundCaption(Text.getValue("ui_background_loading"));
++         worldBytes.position = 0;
++         planetDecoder = new PlanetDecoder(this);
++         planetDecoder.decode(worldBytes,function(decoded:ByteArray):void
++         {
++            var playerData:Object;
++            planetDecoder.dispose();
++            Context.gameWasLoaded = true;
++            playerData = getActiveProfileData();
++            gameProcess.prepareGameProcess(GameType.SURVIVAL,PlanetType.EARTH);
++            decoded.position = 0;
++            gameProcess.game.readWorldData(decoded);
++            try
++            {
++               gameProcess.game.readPlayerData(playerData);
++            }
++            catch(readError:Error)
++            {
++               gameProcess.game.readPlayerData(getActiveProfileData());
++            }
++            runGame();
++         });
+       }
+ 
+       public function startNewGame() : void
+       {
++         if(this._gameStarting)
++         {
++            return;
++         }
++         this._gameStarting = true;
+          if(this.lobby != null)
+          {
+             this.lobby.dispose();
+@@ -586,25 +658,291 @@
+ 
+       private function runGame() : void
+       {
++         this._gameStarting = false;
+          this.removeBackground();
+          this.gameProcess.runGameLoop();
+-      }
+-
+-      public function quitGame() : void
+-      {
+-         this.gameProcess.setFullScreenMode(false);
+-         this.gameProcess.stopGameLoop();
++         if(this.multiplayer != null && this.multiplayer.active)
++         {
++            this.multiplayer.onGameStarted();
++         }
++      }
++
++      public function returnToMultiplayerLobby() : void
++      {
++         var dIdx:int;
++         var dChild:DisplayObject;
++         this.hideWaiting();
++         try
++         {
++            dIdx = this.numChildren - 1;
++            while(dIdx >= 0)
++            {
++               dChild = this.getChildAt(dIdx);
++               if(dChild is DialogUI)
++               {
++                  try
++                  {
++                     (dChild as DialogUI).dispose();
++                  }
++                  catch(eD:Error)
++                  {
++                     if(this.contains(dChild))
++                     {
++                        this.removeChild(dChild);
++                     }
++                  }
++               }
++               dIdx--;
++            }
++         }
++         catch(eDialogs:Error)
++         {
++         }
++         try
++         {
++            if(this.multiplayer != null && this.multiplayer.active)
++            {
++               if(this.multiplayer.isHost)
++               {
++                  this.multiplayer.returnAllToLobby();
++                  this.saveActiveMultiplayerWorld();
++               }
++               else
++               {
++                  this.multiplayer.onReturnToLobby();
++               }
++            }
++         }
++         catch(e1:Error)
++         {
++         }
++         try
++         {
++            this.saveCurrentProfile();
++         }
++         catch(e3:Error)
++         {
++         }
++         try
++         {
++            this.gameProcess.setFullScreenMode(false);
++            this.gameProcess.stopGameLoop();
++         }
++         catch(e5:Error)
++         {
++         }
+          this.createBackground();
+          this.setBackgroundCaption(null);
+          this.showLobby();
++         if(this.lobby != null)
++         {
++            this.lobby.showMultiplayerPage();
++         }
++         this.hideWaiting();
+          Cursors.setCursor(Cursors.DEFAULT);
++      }
++
++      public function quitGame() : void
++      {
++         var wasMultiplayer:Boolean;
++         var dIdx:int;
++         var dChild:DisplayObject;
++         if(this.multiplayer != null && this.multiplayer.active)
++         {
++            this.returnToMultiplayerLobby();
++            return;
++         }
++         this.hideWaiting();
++         wasMultiplayer = this.multiplayer != null && this.multiplayer.active;
++         try
++         {
++            dIdx = this.numChildren - 1;
++            while(dIdx >= 0)
++            {
++               dChild = this.getChildAt(dIdx);
++               if(dChild is DialogUI)
++               {
++                  try
++                  {
++                     (dChild as DialogUI).dispose();
++                  }
++                  catch(eD:Error)
++                  {
++                     if(this.contains(dChild))
++                     {
++                        this.removeChild(dChild);
++                     }
++                  }
++               }
++               dIdx--;
++            }
++         }
++         catch(eDialogs:Error)
++         {
++         }
++         try
++         {
++            if(this.multiplayer != null && this.multiplayer.active && this.multiplayer.isHost)
++            {
++               this.saveActiveMultiplayerWorld();
++            }
++         }
++         catch(e1:Error)
++         {
++         }
++         try
++         {
++            if(this.multiplayer == null || !this.multiplayer.active)
++            {
++               this.saveActiveSingleWorld();
++            }
++         }
++         catch(e2:Error)
++         {
++         }
++         try
++         {
++            this.saveCurrentProfile();
++         }
++         catch(e3:Error)
++         {
++         }
++         try
++         {
++            if(this.multiplayer != null && this.multiplayer.active)
++            {
++               this.multiplayer.stop();
++            }
++         }
++         catch(e4:Error)
++         {
++         }
++         try
++         {
++            this.gameProcess.setFullScreenMode(false);
++            this.gameProcess.stopGameLoop();
++         }
++         catch(e5:Error)
++         {
++         }
++         this.createBackground();
++         this.setBackgroundCaption(null);
++         this.showLobby();
++         if(wasMultiplayer && this.lobby != null)
++         {
++            this.lobby.showMultiplayerPage();
++         }
++         this.hideWaiting();
++         Cursors.setCursor(Cursors.DEFAULT);
++      }
++
++      public function startMultiplayerHostGame() : void
++      {
++         var _loc1_:Object;
++         var _loc2_:SharedObject;
++         var _loc3_:ByteArray;
++         var _loc4_:Boolean;
++         var _loc5_:PlanetDecoder;
++         var _allW_:Array;
++         if(this._gameStarting)
++         {
++            return;
++         }
++         this._gameStarting = true;
++         if(this.lobby != null)
++         {
++            this.lobby.dispose();
++            this.lobby = null;
++         }
++         Context.savingType = SavingType.LOCAL;
++         this.setBackgroundCaption(Text.getValue("ui_background_loading"));
++         _loc1_ = this.getSelectedSingleWorld();
++         if(_loc1_ == null)
++         {
++            _allW_ = this.getSingleWorlds();
++            _loc1_ = _allW_ != null && _allW_.length > 0 ? _allW_[0] : null;
++         }
++         if(_loc1_ == null)
++         {
++            this._gameStarting = false;
++            return;
++         }
++         this._activeSingleWorldId = String(_loc1_.id);
++         this._activeMultiplayerWorldId = String(_loc1_.id);
++         this.touchSingleWorld(this._activeSingleWorldId,false,true);
++         _loc2_ = SharedObject.getLocal(this.getSingleWorldStorageName(this._activeSingleWorldId));
++         _loc3_ = _loc2_.data.world as ByteArray;
++         _loc4_ = _loc3_ != null && _loc3_.length > 0;
++         if(!_loc4_)
++         {
++            _loc2_.close();
++            Context.gameWasLoaded = false;
++            this.setBackgroundCaption(Text.getValue("ui_background_generate_planet"),Text.getValue("ui_background_generate_planet_hint"));
++            this.gameProcess.prepareGameProcess(GameType.SURVIVAL,PlanetType.EARTH);
++            this.gameProcess.createNewWorld(this.getActiveProfileData(),function():void
++            {
++               runGame();
++            });
++            return;
++         }
++         _loc3_.position = 0;
++         _loc2_.close();
++         Context.gameWasLoaded = true;
++         _loc5_ = new PlanetDecoder(this);
++         _loc5_.decode(_loc3_,function(param1:ByteArray):void
++         {
++            _loc5_.dispose();
++            startDecodedMultiplayerGame(param1);
++         });
++      }
++
++      public function startMultiplayerClientGame(param1:ByteArray) : void
++      {
++         if(this._gameStarting)
++         {
++            return;
++         }
++         this._gameStarting = true;
++         if(this.lobby != null)
++         {
++            this.lobby.dispose();
++            this.lobby = null;
++         }
++         this.setBackgroundCaption(Text.getValue("ui_background_loading"));
++         Context.gameWasLoaded = true;
++         this.startDecodedMultiplayerGame(param1);
++      }
++
++      private function startDecodedMultiplayerGame(param1:ByteArray) : void
++      {
++         var _loc3_:Object;
++         var _loc1_:Object = this.getActiveProfileData();
++         var _loc2_:Object = this.getStoredActiveProfileData();
++         this.gameProcess.prepareGameProcess(GameType.SURVIVAL,PlanetType.EARTH);
++         param1.position = 0;
++         this.gameProcess.game.readWorldData(param1);
++         try
++         {
++            this.gameProcess.game.readPlayerData(_loc1_);
++         }
++         catch(error:Error)
++         {
++            _loc3_ = this.cloneProfileObject(Context.startingPlayerData);
++            this.copyPortableProfileFields(_loc3_,_loc2_);
++            this.gameProcess.game.player.load(_loc3_);
++            if(_loc2_ != null && _loc2_.experience != null)
++            {
++               this.gameProcess.game.player.experience = int(_loc2_.experience);
++            }
++         }
++         this.runGame();
+       }
+ 
+       private function createPlanetAndRunGame() : void
+       {
+          var playerData:Object;
+          this.setBackgroundCaption(Text.getValue("ui_background_generate_planet"),Text.getValue("ui_background_generate_planet_hint"));
+-         playerData = Context.cachedPlayerData;
++         playerData = this.getActiveProfileData();
+          this.gameProcess.prepareGameProcess(GameType.SURVIVAL,PlanetType.EARTH);
+          this.gameProcess.createNewWorld(playerData,function():void
+          {
+@@ -645,6 +983,7 @@
+ 
+       private function overrideCustomizeIfNeeded(param1:Object) : void
+       {
++         this.applyActiveProfile(param1);
+          if(Context.savedCustomize == null)
+          {
+             return;
+@@ -655,10 +994,620 @@
+          param1.hair = _loc2_.hair;
+          param1.head = _loc2_.head;
+          param1.hair_color = _loc2_.hair_color;
++         if(_loc2_.name != null && String(_loc2_.name).length > 0)
++         {
++            param1.name = _loc2_.name;
++         }
++      }
++
++      public function saveCurrentProfile() : void
++      {
++         var _loc2_:SharedObject;
++         var _loc3_:Array;
++         var _loc4_:int;
++         var _locPreviousNickname_:String;
++         var _loc1_:Object;
++         var _loc5_:Object;
++         if(this.gameProcess == null || this.gameProcess.game == null)
++         {
++            return;
++         }
++         _loc2_ = SharedObject.getLocal("test");
++         _loc3_ = _loc2_.data.playerProfiles as Array;
++         if(_loc3_ == null)
++         {
++            _loc3_ = [null,null,null];
++         }
++         while(_loc3_.length < 3)
++         {
++            _loc3_.push(null);
++         }
++         _loc4_ = _loc2_.data.activeProfileIndex != null ? int(_loc2_.data.activeProfileIndex) : 0;
++         if(_loc4_ < 0 || _loc4_ > 2)
++         {
++            _loc4_ = 0;
++         }
++         _locPreviousNickname_ = "";
++         if(Context.cachedPlayerData != null && Context.cachedPlayerData.name != null)
++         {
++            _locPreviousNickname_ = String(Context.cachedPlayerData.name).replace(/^\s+|\s+$/g,"");
++         }
++         if(_locPreviousNickname_.length == 0 && _loc2_.data.nickname != null)
++         {
++            _locPreviousNickname_ = String(_loc2_.data.nickname).replace(/^\s+|\s+$/g,"");
++         }
++         if(_locPreviousNickname_.length == 0 && _loc3_[_loc4_] != null && _loc3_[_loc4_].customize != null && _loc3_[_loc4_].customize.name != null)
++         {
++            _locPreviousNickname_ = String(_loc3_[_loc4_].customize.name).replace(/^\s+|\s+$/g,"");
++         }
++         _loc1_ = new Object();
++         this.gameProcess.game.savePlayer(_loc1_);
++         if((_loc1_.name == null || String(_loc1_.name).replace(/^\s+|\s+$/g,"").length == 0) && _locPreviousNickname_.length > 0)
++         {
++            _loc1_.name = _locPreviousNickname_;
++         }
++         if(Context.savedCustomize != null)
++         {
++            if(Context.savedCustomize.name != null && String(Context.savedCustomize.name).replace(/^\s+|\s+$/g,"").length > 0)
++            {
++               _loc1_.name = Context.savedCustomize.name;
++            }
++            if(Context.savedCustomize.gender != null)
++            {
++               _loc1_.gender = Context.savedCustomize.gender;
++            }
++            if(Context.savedCustomize.hair != null)
++            {
++               _loc1_.hair = Context.savedCustomize.hair;
++            }
++            if(Context.savedCustomize.head != null)
++            {
++               _loc1_.head = Context.savedCustomize.head;
++            }
++            if(Context.savedCustomize.hair_color != null)
++            {
++               _loc1_.hair_color = Context.savedCustomize.hair_color;
++            }
++         }
++         Context.cachedPlayerData = this.cloneProfileObject(_loc1_);
++         _loc5_ = {
++            "gender":_loc1_.gender,
++            "hair":_loc1_.hair,
++            "head":_loc1_.head,
++            "hair_color":_loc1_.hair_color,
++            "name":(_loc1_.name != null ? _loc1_.name : "")
++         };
++         _loc3_[_loc4_] = {
++            "data":this.cloneProfileObject(_loc1_),
++            "customize":this.cloneProfileObject(_loc5_)
++         };
++         _loc2_.data.playerProfiles = _loc3_;
++         _loc2_.data.activeProfileIndex = _loc4_;
++         _loc2_.data.profileSelectionPending = false;
++         _loc2_.data.nickname = _loc5_.name;
++         try
++         {
++            _loc2_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      public function prepareActiveProfile() : void
++      {
++         var _loc1_:Object = this.getStoredActiveProfileData();
++         if(_loc1_ != null)
++         {
++            Context.cachedPlayerData = this.cloneProfileObject(_loc1_);
++            Context.savedCustomize = {
++               "gender":_loc1_.gender,
++               "hair":_loc1_.hair,
++               "head":_loc1_.head,
++               "hair_color":_loc1_.hair_color,
++               "name":(_loc1_.name != null ? _loc1_.name : "")
++            };
++         }
++      }
++
++      public function createDefaultPlayerData(param1:Boolean = true, param2:int = 1, param3:int = 1, param4:int = 0, param5:String = "") : Object
++      {
++         var _loc6_:Object = new Object();
++         _loc6_.gender = param1;
++         _loc6_.hair = param2;
++         _loc6_.head = param3;
++         _loc6_.hair_color = param4;
++         _loc6_.name = param5 != null ? param5 : "";
++         _loc6_.level = 1;
++         _loc6_.experience = 0;
++         var _loc7_:Object = new Object();
++         var _loc8_:Array = new Array();
++         var _loc9_:int = 0;
++         while(_loc9_ < 45)
++         {
++            _loc8_.push(null);
++            _loc9_++;
++         }
++         _loc7_.items = _loc8_;
++         _loc7_.armors = [null,null,null];
++         _loc7_.social_armors = [null,null,null];
++         _loc7_.projectiles = [null,null,null];
++         _loc7_.tasks = [];
++         _loc7_.item_in_hand = 0;
++         _loc7_.health = 100;
++         _loc7_.experience_version = 1;
++         _loc6_.another_data = _loc7_;
++         _loc6_.warehouse_data = null;
++         return _loc6_;
++      }
++
++      public function getActiveProfileData() : Object
++      {
++         var _loc1_:Object = this.getStoredActiveProfileData();
++         if(_loc1_ != null && _loc1_.another_data != null)
++         {
++            return this.cloneProfileObject(_loc1_);
++         }
++         if(_loc1_ != null)
++         {
++            return this.createDefaultPlayerData(_loc1_.gender,_loc1_.hair,_loc1_.head,_loc1_.hair_color,_loc1_.name != null ? _loc1_.name : "");
++         }
++         var _loc2_:SharedObject = SharedObject.getLocal("test");
++         var _loc3_:int = _loc2_.data.activeProfileIndex != null ? int(_loc2_.data.activeProfileIndex) : 0;
++         if(_loc3_ == 0 && _loc2_.data.playerProfiles == null && LocalDataProvider.hasPlayerData())
++         {
++            return this.cloneProfileObject(LocalDataProvider.getPlayerData());
++         }
++         return this.createDefaultPlayerData();
++      }
++
++      private function isUsablePlayerData(param1:Object) : Boolean
++      {
++         if(param1 == null || param1.another_data == null)
++         {
++            return param1 != null;
++         }
++         var _loc2_:Object = param1.another_data;
++         return _loc2_.items is Array && _loc2_.armors is Array && _loc2_.social_armors is Array && _loc2_.projectiles is Array && _loc2_.tasks is Array;
++      }
++
++      private function copyPortableProfileFields(param1:Object, param2:Object) : void
++      {
++         if(param1 == null || param2 == null)
++         {
++            return;
++         }
++         var _loc3_:Array = ["name","gender","hair","head","hair_color","level","experience"];
++         for each(var _loc4_ in _loc3_)
++         {
++            if(param2[_loc4_] !== undefined)
++            {
++               param1[_loc4_] = param2[_loc4_];
++            }
++         }
++      }
++
++      private function getStoredActiveProfileData() : Object
++      {
++         var _loc1_:SharedObject = SharedObject.getLocal("test");
++         var _loc2_:Array = _loc1_.data.playerProfiles as Array;
++         if(_loc2_ == null)
++         {
++            return null;
++         }
++         var _loc3_:int = _loc1_.data.activeProfileIndex != null ? int(_loc1_.data.activeProfileIndex) : 0;
++         if(_loc3_ < 0 || _loc3_ >= _loc2_.length || _loc2_[_loc3_] == null || _loc2_[_loc3_].data == null)
++         {
++            return null;
++         }
++         return this.cloneProfileObject(_loc2_[_loc3_].data);
++      }
++
++      public function getMultiplayerWorlds() : Array
++      {
++         return this.getSingleWorlds();
++      }
++
++      public function createMultiplayerWorld(param1:String) : Object
++      {
++         return this.createSingleWorld(param1);
++      }
++
++      public function selectMultiplayerWorld(param1:String) : void
++      {
++         this.selectSingleWorld(param1);
++      }
++
++      public function getSelectedMultiplayerWorld() : Object
++      {
++         return this.getSelectedSingleWorld();
++      }
++
++      public function saveActiveMultiplayerWorld() : void
++      {
++         this.saveActiveSingleWorld();
++      }
++
++      private function getMultiplayerWorldStorageName(param1:String) : String
++      {
++         return this.getSingleWorldStorageName(param1);
++      }
++
++      private function findMultiplayerWorld(param1:Array, param2:String) : Object
++      {
++         return this.findSingleWorld(param1,param2);
++      }
++
++      private function touchMultiplayerWorld(param1:String, param2:Boolean, param3:Boolean) : void
++      {
++         this.touchSingleWorld(param1,param2,param3);
++      }
++
++      public function getSingleWorlds() : Array
++      {
++         var _loc3_:Number;
++         var _loc4_:SharedObject;
++         var _loc5_:ByteArray;
++         var _loc6_:ByteArray;
++         var _loc7_:Object;
++         var _loc8_:SharedObject;
++         var _loc9_:SharedObject;
++         var _loc1_:SharedObject = SharedObject.getLocal("orion_single_worlds_v1");
++         var _loc2_:Array = _loc1_.data.worlds as Array;
++         if(_loc2_ == null)
++         {
++            _loc2_ = [];
++         }
++         if(_loc2_.length == 0)
++         {
++            _loc3_ = new Date().time;
++            _loc4_ = SharedObject.getLocal("world");
++            _loc5_ = _loc4_.data.world as ByteArray;
++            _loc7_ = {
++               "id":"world_" + int(_loc3_) + "_s",
++               "name":(this._choosedLanguage == "ru" ? "МИР 1" : "WORLD 1"),
++               "createdAt":_loc3_,
++               "modifiedAt":_loc3_,
++               "lastPlayedAt":0
++            };
++            _loc2_.push(_loc7_);
++            if(_loc5_ != null && _loc5_.length > 0)
++            {
++               _loc6_ = new ByteArray();
++               _loc5_.position = 0;
++               _loc6_.writeBytes(_loc5_);
++               _loc6_.position = 0;
++               _loc8_ = SharedObject.getLocal(this.getSingleWorldStorageName(String(_loc7_.id)));
++               _loc8_.data.world = _loc6_;
++               _loc9_ = SharedObject.getLocal("player");
++               if(_loc9_.data.player != null)
++               {
++                  _loc8_.data.player = _loc9_.data.player;
++               }
++               try
++               {
++                  _loc8_.flush();
++               }
++               catch(migrateError:Error)
++               {
++               }
++            }
++         }
++         _loc1_.data.worlds = _loc2_;
++         if(_loc1_.data.selectedWorldId == null || this.findSingleWorld(_loc2_,String(_loc1_.data.selectedWorldId)) == null)
++         {
++            _loc1_.data.selectedWorldId = String(_loc2_[0].id);
++         }
++         try
++         {
++            _loc1_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++         return _loc2_;
++      }
++
++      public function createSingleWorld(param1:String) : Object
++      {
++         var _loc1_:SharedObject;
++         var _loc2_:Array;
++         var _loc3_:Number;
++         var _loc4_:Object;
++         param1 = param1 == null ? "" : param1.replace(/^\s+|\s+$/g,"");
++         if(param1.length == 0)
++         {
++            _loc2_ = this.getSingleWorlds();
++            param1 = this._choosedLanguage == "ru" ? "МИР " + (_loc2_.length + 1) : "WORLD " + (_loc2_.length + 1);
++         }
++         if(param1.length > 20)
++         {
++            param1 = param1.substr(0,20);
++         }
++         _loc1_ = SharedObject.getLocal("orion_single_worlds_v1");
++         _loc2_ = this.getSingleWorlds();
++         if(_loc2_.length >= 5)
++         {
++            return null;
++         }
++         _loc3_ = new Date().time;
++         _loc4_ = {
++            "id":"world_" + int(_loc3_) + "_" + int(Math.random() * 100000) + "_s",
++            "name":param1,
++            "createdAt":_loc3_,
++            "modifiedAt":_loc3_,
++            "lastPlayedAt":0
++         };
++         _loc2_.push(_loc4_);
++         _loc1_.data.worlds = _loc2_;
++         _loc1_.data.selectedWorldId = _loc4_.id;
++         try
++         {
++            _loc1_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++         return _loc4_;
++      }
++
++      public function selectSingleWorld(param1:String) : void
++      {
++         var _loc2_:SharedObject;
++         var _loc1_:Array = this.getSingleWorlds();
++         if(this.findSingleWorld(_loc1_,param1) == null)
++         {
++            return;
++         }
++         _loc2_ = SharedObject.getLocal("orion_single_worlds_v1");
++         _loc2_.data.selectedWorldId = param1;
++         try
++         {
++            _loc2_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      public function getSelectedSingleWorld() : Object
++      {
++         var _loc1_:SharedObject = SharedObject.getLocal("orion_single_worlds_v1");
++         var _loc2_:Array = this.getSingleWorlds();
++         var _loc3_:Object = this.findSingleWorld(_loc2_,String(_loc1_.data.selectedWorldId));
++         return _loc3_ != null ? _loc3_ : (_loc2_.length > 0 ? _loc2_[0] : null);
++      }
++
++      public function deleteSingleWorld(param1:String) : void
++      {
++         var _loc6_:Number;
++         var _loc4_:*;
++         var _loc5_:SharedObject;
++         var _loc1_:SharedObject = SharedObject.getLocal("orion_single_worlds_v1");
++         var _loc2_:Array = this.getSingleWorlds();
++         var _loc3_:Array = [];
++         for each(_loc4_ in _loc2_)
++         {
++            if(_loc4_ != null && String(_loc4_.id) != param1)
++            {
++               _loc3_.push(_loc4_);
++            }
++         }
++         _loc5_ = SharedObject.getLocal(this.getSingleWorldStorageName(param1));
++         try
++         {
++            _loc5_.clear();
++            _loc5_.flush();
++         }
++         catch(clearError:Error)
++         {
++         }
++         if(_loc3_.length == 0)
++         {
++            _loc6_ = new Date().time;
++            _loc3_.push({
++               "id":"world_" + int(_loc6_) + "_s",
++               "name":(this._choosedLanguage == "ru" ? "МИР 1" : "WORLD 1"),
++               "createdAt":_loc6_,
++               "modifiedAt":_loc6_,
++               "lastPlayedAt":0
++            });
++         }
++         _loc1_.data.worlds = _loc3_;
++         if(String(_loc1_.data.selectedWorldId) == param1 || this.findSingleWorld(_loc3_,String(_loc1_.data.selectedWorldId)) == null)
++         {
++            _loc1_.data.selectedWorldId = String(_loc3_[0].id);
++         }
++         try
++         {
++            _loc1_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      public function renameSingleWorld(param1:String, param2:String) : void
++      {
++         var _loc1_:SharedObject;
++         var _loc2_:Array;
++         var _loc3_:Object;
++         if(param1 == null || param2 == null)
++         {
++            return;
++         }
++         param2 = param2.replace(/^\s+|\s+$/g,"");
++         if(param2.length == 0)
++         {
++            return;
++         }
++         if(param2.length > 20)
++         {
++            param2 = param2.substr(0,20);
++         }
++         _loc1_ = SharedObject.getLocal("orion_single_worlds_v1");
++         _loc2_ = this.getSingleWorlds();
++         _loc3_ = this.findSingleWorld(_loc2_,param1);
++         if(_loc3_ != null)
++         {
++            _loc3_.name = param2;
++            _loc3_.modifiedAt = new Date().time;
++            _loc1_.data.worlds = _loc2_;
++            try
++            {
++               _loc1_.flush();
++            }
++            catch(error:Error)
++            {
++            }
++         }
++      }
++
++      public function saveActiveSingleWorld() : void
++      {
++         var _loc1_:ByteArray;
++         var _loc2_:SharedObject;
++         var _loc3_:Object;
++         var _testSo_:SharedObject;
++         var _profs_:Array;
++         var _pIdx_:int;
++         if(this._activeSingleWorldId == null || this._activeSingleWorldId.length == 0 || this.gameProcess == null || this.gameProcess.game == null)
++         {
++            return;
++         }
++         _loc1_ = new ByteArray();
++         this.gameProcess.game.saveWorld(_loc1_);
++         _loc1_.position = 0;
++         try
++         {
++            _loc1_.compress();
++            _loc2_ = SharedObject.getLocal(this.getSingleWorldStorageName(this._activeSingleWorldId));
++            _loc2_.data.world = _loc1_;
++            _loc3_ = new Object();
++            this.gameProcess.game.savePlayer(_loc3_);
++            _loc2_.data.player = _loc3_;
++            _loc2_.flush();
++            _loc2_.close();
++            this.touchSingleWorld(this._activeSingleWorldId,true,true);
++            Context.cachedPlayerData = this.cloneProfileObject(_loc3_);
++            _testSo_ = SharedObject.getLocal("test");
++            _profs_ = _testSo_.data.playerProfiles as Array;
++            _pIdx_ = _testSo_.data.activeProfileIndex != null ? int(_testSo_.data.activeProfileIndex) : 0;
++            if(_profs_ != null && _pIdx_ >= 0 && _pIdx_ < _profs_.length && _profs_[_pIdx_] != null)
++            {
++               _profs_[_pIdx_].data = this.cloneProfileObject(_loc3_);
++               _testSo_.data.playerProfiles = _profs_;
++               try
++               {
++                  _testSo_.flush();
++               }
++               catch(_flushErr_:Error)
++               {
++               }
++            }
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      private function getSingleWorldStorageName(param1:String) : String
++      {
++         return "orion_single_world_" + param1.replace(/[^a-zA-Z0-9_-]/g,"_");
++      }
++
++      private function findSingleWorld(param1:Array, param2:String) : Object
++      {
++         for each(var _loc3_ in param1)
++         {
++            if(_loc3_ != null && String(_loc3_.id) == param2)
++            {
++               return _loc3_;
++            }
++         }
++         return null;
++      }
++
++      private function touchSingleWorld(param1:String, param2:Boolean, param3:Boolean) : void
++      {
++         var _loc4_:Number;
++         var _loc1_:SharedObject = SharedObject.getLocal("orion_single_worlds_v1");
++         var _loc2_:Array = this.getSingleWorlds();
++         var _loc3_:Object = this.findSingleWorld(_loc2_,param1);
++         if(_loc3_ == null)
++         {
++            return;
++         }
++         _loc4_ = new Date().time;
++         if(param2)
++         {
++            _loc3_.modifiedAt = _loc4_;
++         }
++         if(param3)
++         {
++            _loc3_.lastPlayedAt = _loc4_;
++         }
++         _loc1_.data.worlds = _loc2_;
++         try
++         {
++            _loc1_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      private function applyActiveProfile(param1:Object) : void
++      {
++         var _loc1_:SharedObject;
++         var _loc2_:Array;
++         var _loc3_:int;
++         var _loc4_:Object;
++         if(param1 == null)
++         {
++            return;
++         }
++         _loc1_ = SharedObject.getLocal("test");
++         _loc2_ = _loc1_.data.playerProfiles as Array;
++         if(_loc2_ == null)
++         {
++            return;
++         }
++         _loc3_ = _loc1_.data.activeProfileIndex != null ? int(_loc1_.data.activeProfileIndex) : 0;
++         if(_loc3_ < 0 || _loc3_ >= _loc2_.length || _loc2_[_loc3_] == null || _loc2_[_loc3_].data == null)
++         {
++            return;
++         }
++         _loc4_ = this.cloneProfileObject(_loc2_[_loc3_].data);
++         this.copyPortableProfileFields(param1,_loc4_);
++         Context.cachedPlayerData = this.cloneProfileObject(param1);
++         _loc1_.data.profileSelectionPending = false;
++         try
++         {
++            _loc1_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      private function cloneProfileObject(param1:Object) : Object
++      {
++         if(param1 == null)
++         {
++            return new Object();
++         }
++         var _loc2_:ByteArray = new ByteArray();
++         _loc2_.writeObject(param1);
++         _loc2_.position = 0;
++         return _loc2_.readObject();
+       }
+ 
+       private function onUncaughtError(param1:UncaughtErrorEvent) : void
+       {
++         var _loc3_:String;
++         var _so_:SharedObject;
++         var _arr_:Array;
+          var _loc2_:String = null;
+          var _loc4_:Error = null;
+          var _loc5_:ErrorEvent = null;
+@@ -676,17 +1625,51 @@
+          {
+             _loc2_ = "[unknown error]";
+          }
+-         var _loc3_:String = Helper.format("Uncaught error: {0}\n\n",_loc2_);
++         _loc3_ = Helper.format("Uncaught error: {0}\n\n",_loc2_);
+          _loc3_ += Helper.format("Game version: {0}\n",GameInfo.VERSION);
+          _loc3_ += Helper.format("Player type: {0}\n",Capabilities.playerType);
+          _loc3_ += Helper.format("Player Version: {0}\n",Capabilities.version);
+-         _loc3_ += Helper.format("Screen resolution: {0}x{1}\n",Capabilities.screenResolutionX,Capabilities.screenResolutionY);
++         _loc3_ += Helper.format("Screen resolution: {0}x{1}\n\n",Capabilities.screenResolutionX,Capabilities.screenResolutionY);
+          _loc3_ += Helper.format("Used memory: {0}MB\n\n",int(System.totalMemory / 1024 / 1024));
+          this.logger.critical(_loc3_);
++         if(App._crashLogCount < 100)
++         {
++            var _loc3_:* = App;
++            var _loc4_:Number = Number(_loc3_._crashLogCount) + 1;
++            _loc3_._crashLogCount = _loc4_;
++            try
++            {
++               _so_ = SharedObject.getLocal("crash_log");
++               _arr_ = _so_.data.errors as Array;
++               if(_arr_ == null)
++               {
++                  _arr_ = [];
++               }
++               _arr_.push("UNCAUGHT#" + App._crashLogCount + " msg=" + (param1.error is Error ? (param1.error as Error).message : String(param1.error)) + "\n" + _loc2_);
++               while(_arr_.length > 100)
++               {
++                  _arr_.shift();
++               }
++               _so_.data.errors = _arr_;
++               try
++               {
++                  _so_.flush();
++               }
++               catch(_flushError_:Error)
++               {
++               }
++            }
++            catch(_fileError_:Error)
++            {
++            }
++         }
+       }
+ 
+       private function gameProcess_OnInitCompleted() : void
+       {
++         this.multiplayer = new MultiplayerManager();
++         Context.provideMultiplayer(this.multiplayer);
++         this.prepareActiveProfile();
+          var _loc1_:Object = SettingsProvider.getSettings();
+          if(_loc1_.sound != undefined)
+          {
+@@ -705,23 +1688,27 @@
+          this.showErrorDialog(Text.getValue("error_game_init"));
+       }
+ 
+-      private function processCommandLine(param1:InvokeEvent) : void
+-      {
+-         var _loc5_:String = null;
+-         var _loc3_:Array = param1.arguments;
+-         var _loc4_:int = 0;
+-         while(_loc4_ < _loc3_.length)
+-         {
+-            _loc5_ = _loc3_[_loc4_];
+-            switch(_loc5_)
++      private function processCommandLine(param1:Object) : void
++      {
++         var _loc4_:String = null;
++         var _loc2_:Array = param1 != null ? param1.arguments as Array : null;
++         if(_loc2_ == null)
++         {
++            return;
++         }
++         var _loc3_:int = 0;
++         while(_loc3_ < _loc2_.length)
++         {
++            _loc4_ = _loc2_[_loc3_];
++            switch(_loc4_)
+             {
+                case "-appid":
+-                  this.testRestartAppIfNecessary(_loc3_[++_loc4_]);
+-                  break;
+-               default:
+-                  NativeApplication.nativeApplication.exit(1);
++                  if(_loc3_ + 1 < _loc2_.length)
++                  {
++                     this.testRestartAppIfNecessary(uint(_loc2_[++_loc3_]));
++                  }
+             }
+-            _loc4_++;
++            _loc3_++;
+          }
+       }
+ 
+@@ -1660,6 +2647,15 @@
+ 
+       private function onExit(param1:Event) : void
+       {
++         if(this.multiplayer != null && this.multiplayer.active && this.multiplayer.isHost)
++         {
++            this.saveActiveMultiplayerWorld();
++         }
++         if(this.multiplayer == null || !this.multiplayer.active)
++         {
++            this.saveActiveSingleWorld();
++         }
++         this.saveCurrentProfile();
+          this.log("Exiting application, cleaning up");
+          this.Steamworks.dispose();
+       }

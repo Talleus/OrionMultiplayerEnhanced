@@ -1,0 +1,161 @@
+--- a/orion/ui/game/PauseDialogUI.as
++++ b/orion/ui/game/PauseDialogUI.as
+@@ -1,6 +1,7 @@
+ package orion.ui.game
+ {
+    import assets.Images;
++   import flash.desktop.NativeApplication;
+    import flash.display.DisplayObjectContainer;
+    import flash.events.KeyboardEvent;
+    import flash.events.MouseEvent;
+@@ -20,25 +21,50 @@
+ 
+       private var _resumeButton:ButtonUI;
+ 
++      private var _menuButton:ButtonUI;
++
++      private var _exitGameButton:ButtonUI;
++
+       private var _exitKey1:uint = 27;
+-
+-      private var _exitKey2:uint = 80;
+-
+-      private var _y8Button:ButtonUI;
+ 
+       public function PauseDialogUI(param1:DisplayObjectContainer)
+       {
+          super(param1);
++         _defaultExitKey = 0;
++      }
++
++      override protected function draw() : void
++      {
++         clearGraphics();
++      }
++
++      override public function show() : void
++      {
++         visible = true;
++         this.update();
++         if(this._openSound != null)
++         {
++            playSound(this._openSound);
++         }
+       }
+ 
+       override protected function addChildren() : void
+       {
+          super.addChildren();
+-         this._backgroundPanel = new PanelUI(this).setImage(Images.PAUSE_BACKGROUND).toCenter() as PanelUI;
+-         this._closeButton = new ButtonUI(this._backgroundPanel,273,-2).setImage(Images.BUTTON_GAME_INVENTORY_EXIT).setSize(29,28) as ButtonUI;
+-         this._resumeButton = new ButtonUI(this._backgroundPanel,89,156).setText(Text.getValue("ui_btn_resume")).setTextFont(Fonts.ZANTROKE,18,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_GAME_INVENTORY_GREEN_BIG).setMargin(0,2).setSize(122,59) as ButtonUI;
+-         var _loc1_:LabelUI = new LabelUI(this._backgroundPanel,59,7).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setVerticalAlign(LabelUI.AUTO_VERTICAL_ALIGN).setText(Text.getValue("ui_lbl_pause")).setFont(Context.app.fontBig,15,16767635).addFilter(UIStyle.BLACK_STROKE_FILTER).setSize(176,0) as LabelUI;
+-         this._y8Button = new ButtonUI(this._backgroundPanel,79,40).setTextFont(Fonts.ZANTROKE,18,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.Y8BUTTON_ADDITIONAL_MENU).setMargin(0,2).setSize(145,95) as ButtonUI;
++         this._backgroundPanel = new PanelUI(this) as PanelUI;
++         this._backgroundPanel.graphics.lineStyle(3,4820377,1,true);
++         this._backgroundPanel.graphics.beginFill(1336936,0.98);
++         this._backgroundPanel.graphics.drawRoundRect(0,0,300,214,12,12);
++         this._backgroundPanel.graphics.endFill();
++         this._backgroundPanel.setSize(300,214).toCenter();
++         this._closeButton = new ButtonUI(this._backgroundPanel,269,3).setImage(Images.BUTTON_GAME_INVENTORY_EXIT).setSize(29,28) as ButtonUI;
++         var _loc1_:Boolean = Context.app._choosedLanguage == "ru";
++         var _loc2_:LabelUI = new LabelUI(this._backgroundPanel,59,7).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setVerticalAlign(LabelUI.AUTO_VERTICAL_ALIGN).setText(_loc1_ ? "ПАУЗА" : "PAUSE").setFont(Fonts.ZANTROKE,18,16777215).addFilter(UIStyle.BLACK_STROKE_FILTER).setSize(176,24) as LabelUI;
++         var _loc3_:Boolean = Context.multiplayer != null && Context.multiplayer.active && Context.multiplayer.isHost;
++         this._resumeButton = new ButtonUI(this._backgroundPanel,25,38).setText(_loc1_ ? "ВЕРНУТЬСЯ" : "RETURN").setTextFont(Fonts.ZANTROKE,16,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_RATING_LOAD).setMargin(0,2).setSize(250,49) as ButtonUI;
++         this.updatePvpButton();
++         this._menuButton = new ButtonUI(this._backgroundPanel,25,94).setText(_loc1_ ? "ВЫЙТИ В МЕНЮ" : "MAIN MENU").setTextFont(Fonts.ZANTROKE,15,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_RATING_LOAD).setMargin(0,2).setSize(250,49) as ButtonUI;
++         this._exitGameButton = new ButtonUI(this._backgroundPanel,25,150).setText(_loc3_ ? (_loc1_ ? "ОСТАНОВИТЬ" : "STOP HOST") : (_loc1_ ? "ВЫЙТИ ИЗ ИГРЫ" : "EXIT GAME")).setTextFont(Fonts.ZANTROKE,15,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_RATING_LOAD).setMargin(0,2).setSize(250,49) as ButtonUI;
+       }
+ 
+       override protected function addEventListeners() : void
+@@ -46,8 +72,8 @@
+          super.addEventListeners();
+          this._closeButton.addEventListener(MouseEvent.CLICK,this._closeButton_OnClick);
+          this._resumeButton.addEventListener(MouseEvent.CLICK,this._resumeButton_OnClick);
+-         this._y8Button.addEventListener(MouseEvent.CLICK,this._y8Button_OnClick);
+-         this._y8Button.setActive(false);
++         this._menuButton.addEventListener(MouseEvent.CLICK,this._menuButton_OnClick);
++         this._exitGameButton.addEventListener(MouseEvent.CLICK,this._exitGameButton_OnClick);
+       }
+ 
+       override protected function removeEventListeners() : void
+@@ -55,7 +81,8 @@
+          super.removeEventListeners();
+          this._closeButton.removeEventListener(MouseEvent.CLICK,this._closeButton_OnClick);
+          this._resumeButton.removeEventListener(MouseEvent.CLICK,this._resumeButton_OnClick);
+-         this._y8Button.removeEventListener(MouseEvent.CLICK,this._y8Button_OnClick);
++         this._menuButton.removeEventListener(MouseEvent.CLICK,this._menuButton_OnClick);
++         this._exitGameButton.removeEventListener(MouseEvent.CLICK,this._exitGameButton_OnClick);
+       }
+ 
+       public function showPause() : void
+@@ -66,7 +93,7 @@
+       override protected function onKeyUp(param1:KeyboardEvent) : void
+       {
+          super.onKeyUp(param1);
+-         if(param1.keyCode == this._exitKey1 || param1.keyCode == this._exitKey2)
++         if(param1.keyCode == this._exitKey1)
+          {
+             this.close(false);
+          }
+@@ -79,7 +106,23 @@
+ 
+       private function _resumeButton_OnClick(param1:MouseEvent) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.active)
++         {
++            Context.multiplayer.setPvpEnabled(!Context.multiplayer.pvpEnabled);
++            this.updatePvpButton();
++            return;
++         }
+          this.close();
++      }
++
++      private function updatePvpButton() : void
++      {
++         if(this._resumeButton == null || Context.multiplayer == null || !Context.multiplayer.active)
++         {
++            return;
++         }
++         var _loc1_:Boolean = Context.app._choosedLanguage == "ru";
++         this._resumeButton.text = (_loc1_ ? "РЕЖИМ PVP: " : "PVP MODE: ") + (Context.multiplayer.pvpEnabled ? (_loc1_ ? "ВКЛ" : "ON") : (_loc1_ ? "ВЫКЛ" : "OFF"));
+       }
+ 
+       private function _closeButton_OnClick(param1:MouseEvent) : void
+@@ -87,8 +130,35 @@
+          this.close();
+       }
+ 
+-      private function _y8Button_OnClick(param1:MouseEvent) : void
++      private function _menuButton_OnClick(param1:MouseEvent) : void
+       {
++         this.close();
++         Context.app.hideWaiting();
++         if(Context.game != null)
++         {
++            try
++            {
++               Context.game.completeSaving();
++            }
++            catch(err:Error)
++            {
++            }
++         }
++         Context.app.quitGame();
++         Context.app.hideWaiting();
++      }
++
++      private function _exitGameButton_OnClick(param1:MouseEvent) : void
++      {
++         this.close();
++         if(Context.multiplayer != null && Context.multiplayer.active && Context.multiplayer.isHost)
++         {
++            Context.app.quitGame();
++            return;
++         }
++         Context.app.hideWaiting();
++         Context.app.saveCurrentProfile();
++         NativeApplication.nativeApplication.exit();
+       }
+    }
+ }

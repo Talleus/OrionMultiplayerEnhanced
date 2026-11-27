@@ -1,0 +1,11 @@
+--- a/orion/worlds/entities/projectiles/PotionFrostEntity.as
++++ b/orion/worlds/entities/projectiles/PotionFrostEntity.as
+@@ -26,7 +26,7 @@
+ 
+       override public function collided(param1:CreatureEntity) : void
+       {
+-         if(owner != null && !owner.isEnemy(param1))
++         if(owner != null && (Context.multiplayer != null && Context.multiplayer.active ? !Context.multiplayer.canProjectileHit(owner,param1) : !owner.isEnemy(param1)))
+          {
+             return;
+          }

@@ -1,0 +1,86 @@
+--- a/orion/worlds/entities/CharacterEntity.as
++++ b/orion/worlds/entities/CharacterEntity.as
+@@ -196,6 +196,12 @@
+ 
+       public var armDegrees:Number = 0;
+ 
++      public var useNetworkAim:Boolean = false;
++
++      public var networkHeadDegrees:Number = 0;
++
++      public var networkArmDegrees:Number = 0;
++
+       public const headDegreesMax:Number = 28;
+ 
+       public const headDegreesMin:Number = -28;
+@@ -391,7 +397,7 @@
+          var _loc26_:Vector.<Texture2D> = null;
+          var _loc27_:Vector.<Texture2D> = null;
+          var _loc28_:Vector.<Texture2D> = null;
+-         var _loc29_:Number = NaN;
++         var _loc29_:Number = Number(NaN);
+          if(this.recoil > 0)
+          {
+             --this.recoil;
+@@ -400,12 +406,20 @@
+                this.recoil = 1;
+             }
+          }
+-         this.headDegrees = 57.32 * Math.atan((input.mouseY + screen.y - world.player.center.y) / Math.abs(input.mouseX + screen.x - world.player.center.x));
+-         if(isNaN(this.headDegrees))
+-         {
+-            this.headDegrees = 0;
+-         }
+-         this.armDegrees = this.headDegrees - this.recoil;
++         if(this.useNetworkAim)
++         {
++            this.headDegrees = this.networkHeadDegrees;
++            this.armDegrees = this.networkArmDegrees;
++         }
++         else
++         {
++            this.headDegrees = 57.32 * Math.atan((input.mouseY + screen.y - world.player.center.y) / Math.abs(input.mouseX + screen.x - world.player.center.x));
++            if(isNaN(this.headDegrees))
++            {
++               this.headDegrees = 0;
++            }
++            this.armDegrees = this.headDegrees - this.recoil;
++         }
+          if(this.headDegrees >= this.headDegreesMax)
+          {
+             this.headDegrees = this.headDegreesMax;
+@@ -1384,7 +1398,7 @@
+ 
+       private function updateAnimation(param1:int) : void
+       {
+-         var _loc2_:Number = NaN;
++         var _loc2_:Number = Number(NaN);
+          if(!onGround && !onLadder)
+          {
+             this.bodyFrame = FLY_FRAME;
+@@ -1505,10 +1519,10 @@
+ 
+       private function setRenderBodyInfo() : void
+       {
+-         var _loc1_:Number = NaN;
+-         var _loc2_:Number = NaN;
+-         var _loc3_:Number = NaN;
+-         var _loc4_:Number = NaN;
++         var _loc1_:Number = Number(NaN);
++         var _loc2_:Number = Number(NaN);
++         var _loc3_:Number = Number(NaN);
++         var _loc4_:Number = Number(NaN);
+          if(this.gender)
+          {
+             _loc1_ = this.maleCenterHandRotation.x;
+@@ -1533,8 +1547,8 @@
+       {
+          var _loc1_:Point = null;
+          var _loc2_:Point = null;
+-         var _loc3_:Number = NaN;
+-         var _loc4_:Number = NaN;
++         var _loc3_:Number = Number(NaN);
++         var _loc4_:Number = Number(NaN);
+          if(this.gender)
+          {
+             _loc1_ = MALE_HAND_POSITIONS[this.handFrame];

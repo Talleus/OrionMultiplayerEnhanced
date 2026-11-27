@@ -1,0 +1,122 @@
+--- a/orion/ui/general/ConfirmDialogUI.as
++++ b/orion/ui/general/ConfirmDialogUI.as
+@@ -2,8 +2,12 @@
+ {
+    import assets.Images;
+    import assets.Sounds;
++   import flash.display.BitmapData;
+    import flash.display.DisplayObjectContainer;
+    import flash.events.MouseEvent;
++   import flash.geom.Matrix;
++   import flash.geom.Point;
++   import flash.geom.Rectangle;
+    import orion.ui.UIStyle;
+    import orion.ui.base.ButtonUI;
+    import orion.ui.base.DialogUI;
+@@ -14,13 +18,13 @@
+    public final class ConfirmDialogUI extends DialogUI
+    {
+ 
++      private static var _bgBmp:BitmapData;
++
+       private var _messageLabel:LabelUI;
+ 
+       private var _confirmButton:ButtonUI;
+ 
+       private var _cancelButton:ButtonUI;
+-
+-      private var _closeButton:ButtonUI;
+ 
+       public function ConfirmDialogUI(param1:DisplayObjectContainer)
+       {
+@@ -28,14 +32,46 @@
+          _openSound = Sounds.CONFIRM;
+       }
+ 
++      private static function getDialogBackground() : BitmapData
++      {
++         if(_bgBmp == null)
++         {
++            var targetW:int = 410;
++            var targetH:int = 224;
++            var srcConf:BitmapData = Images.PANEL_CONFIRM_BACKGROUND;
++            var srcErr:BitmapData = Images.PANEL_ERROR_BACKGROUND;
++            _bgBmp = new BitmapData(targetW,targetH,true,0);
++            var shelfY:int = 146;
++            var capBot:int = 10;
++            _bgBmp.copyPixels(srcConf,new Rectangle(0,0,targetW,34),new Point(0,0),null,null,true);
++            _bgBmp.copyPixels(srcConf,new Rectangle(0,34,targetW,shelfY - 34),new Point(0,34),null,null,true);
++            _bgBmp.copyPixels(srcErr,new Rectangle(0,254,targetW,3),new Point(0,shelfY),null,null,true);
++            var shelfFillH:int = targetH - shelfY - 3 - capBot;
++            if(shelfFillH > 0)
++            {
++               var mShelf:Matrix = new Matrix();
++               mShelf.scale(1,shelfFillH / 30);
++               mShelf.translate(0,shelfY + 3);
++               var bmpShelf:BitmapData = new BitmapData(targetW,30,true,0);
++               bmpShelf.copyPixels(srcErr,new Rectangle(0,260,targetW,30),new Point(0,0));
++               _bgBmp.draw(bmpShelf,mShelf,null,null,new Rectangle(0,shelfY + 3,targetW,shelfFillH),true);
++               bmpShelf.dispose();
++            }
++            var halfW:int = targetW / 2;
++            var rightW:int = targetW - halfW;
++            _bgBmp.copyPixels(srcErr,new Rectangle(0,srcErr.height - capBot,halfW,capBot),new Point(0,targetH - capBot),null,null,true);
++            _bgBmp.copyPixels(srcErr,new Rectangle(srcErr.width - rightW,srcErr.height - capBot,rightW,capBot),new Point(halfW,targetH - capBot),null,null,true);
++         }
++         return _bgBmp;
++      }
++
+       override protected function addChildren() : void
+       {
+          super.addChildren();
+-         var _loc1_:PanelUI = new PanelUI(this).setImage(Images.PANEL_CONFIRM_BACKGROUND).toCenter() as PanelUI;
+-         this._messageLabel = new LabelUI(_loc1_,12,32).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setSystemFont("Verdana",15,16769439).addFilter(UIStyle.BLACK_STROKE_FILTER).addFilter(UIStyle.BLACK_SHADOW_FILTER).setSize(386,116) as LabelUI;
+-         this._confirmButton = new ButtonUI(_loc1_,12,154).setTextFont(Fonts.ZANTROKE,16,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
+-         this._cancelButton = new ButtonUI(_loc1_,208,154).setText(Text.getValue("ui_btn_cancel")).setTextFont(Fonts.ZANTROKE,16,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_AVATAR_TO_ALBUM).setMargin(0,2).setSize(190,49) as ButtonUI;
+-         this._closeButton = new ButtonUI(_loc1_,382,-2).setImage(Images.BUTTON_GAME_INVENTORY_EXIT).setSize(29,28) as ButtonUI;
++         var _loc1_:PanelUI = new PanelUI(this).setImage(getDialogBackground()).toCenter() as PanelUI;
++         this._messageLabel = new LabelUI(_loc1_,12,38).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setSystemFont("Verdana",15,16769439).addFilter(UIStyle.BLACK_STROKE_FILTER).addFilter(UIStyle.BLACK_SHADOW_FILTER).setSize(386,105) as LabelUI;
++         this._confirmButton = new ButtonUI(_loc1_,12,154).setTextFont(Fonts.ZANTROKE,15,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
++         this._cancelButton = new ButtonUI(_loc1_,208,154).setText(Text.getValue("ui_btn_cancel")).setTextFont(Fonts.ZANTROKE,15,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_AVATAR_TO_ALBUM).setMargin(0,2).setSize(190,49) as ButtonUI;
+       }
+ 
+       override protected function addEventListeners() : void
+@@ -43,7 +79,6 @@
+          super.addEventListeners();
+          this._confirmButton.addEventListener(MouseEvent.CLICK,this._confirmButton_OnClick);
+          this._cancelButton.addEventListener(MouseEvent.CLICK,this._cancelButton_OnClick);
+-         this._closeButton.addEventListener(MouseEvent.CLICK,this._closeButton_OnClick);
+       }
+ 
+       override protected function removeEventListeners() : void
+@@ -51,11 +86,18 @@
+          super.removeEventListeners();
+          this._confirmButton.removeEventListener(MouseEvent.CLICK,this._confirmButton_OnClick);
+          this._cancelButton.removeEventListener(MouseEvent.CLICK,this._cancelButton_OnClick);
+-         this._closeButton.removeEventListener(MouseEvent.CLICK,this._closeButton_OnClick);
+       }
+ 
+       public function showConfirm(param1:String, param2:String) : void
+       {
++         if(param1 != null && param1.length > 12)
++         {
++            this._confirmButton.setTextFont(Fonts.ZANTROKE,13,16777215);
++         }
++         else
++         {
++            this._confirmButton.setTextFont(Fonts.ZANTROKE,15,16777215);
++         }
+          this._confirmButton.text = param1;
+          this._messageLabel.text = param2;
+          show();
+@@ -70,10 +112,5 @@
+       {
+          close(false);
+       }
+-
+-      private function _closeButton_OnClick(param1:MouseEvent) : void
+-      {
+-         close(false);
+-      }
+    }
+ }

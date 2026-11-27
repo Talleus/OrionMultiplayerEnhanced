@@ -1,0 +1,28 @@
+--- a/orion/worlds/items/consumable/ChangeGenderPotionItem.as
++++ b/orion/worlds/items/consumable/ChangeGenderPotionItem.as
+@@ -2,6 +2,7 @@
+ {
+    import assets.Sounds;
+    import orion.effects.Effect;
++   import orion.worlds.entities.CharacterEntity;
+    import orion.worlds.entities.CreatureEntity;
+    import orion.worlds.items.ConsumableItem;
+ 
+@@ -16,9 +17,14 @@
+ 
+       override public function consumable(param1:CreatureEntity) : void
+       {
+-         world.player.gender = !world.player.gender;
+-         world.player.initHairAndHeadTextures();
+-         effects.addEffect(Effect.POTION_CHANGE_GENDER).setTarget(world.player).setPosition(world.player.width * 0.5,world.player.height * 0.5);
++         var _loc2_:CharacterEntity = param1 as CharacterEntity;
++         if(_loc2_ == null)
++         {
++            return;
++         }
++         _loc2_.gender = !_loc2_.gender;
++         _loc2_.initHairAndHeadTextures();
++         effects.addEffect(Effect.POTION_CHANGE_GENDER).setTarget(_loc2_).setPosition(_loc2_.width * 0.5,_loc2_.height * 0.5);
+          sounds.play(Sounds.POTION_CHANGE_GENDER);
+       }
+    }

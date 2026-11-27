@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "project": "OrionMultiplayerEnhanced",
+  "version": "0.5.0-preview.1",
+  "base": {
+    "file_sha256": "233befd6a79bb5c74624467fddcbba4ea2dccf0907a1315c9e816530e0e15313",
+    "expanded_sha256": "ea1dc1b812e488f5386cb1e30749206eadacc27dfc22ae45e8739de384f056fe",
+    "expanded_size": 68465796
+  },
+  "target": {
+    "file_sha256": "8e9d9fb852e2924424fdef441a552db08879468ba14dcc53c3e13a02e81a3e44",
+    "expanded_sha256": "7c5e1acdb847b5ea740ce9bf2f43fbc00c704c5c948e80e883ce88f34069f454",
+    "expanded_size": 68816194
+  },
+  "patch": {
+    "format": "bsdiff4-uncompressed-swf",
+    "sha256": "eec547c72172575f333d7a22d6d24a2a891bbc7c31a06d2fd07158e55d815bcb",
+    "size": 239412
+  },
+  "network": {
+    "protocol_version": 4,
+    "wire_mod_version": "0.4.5",
+    "default_tcp_port": 27015
+  },
+  "original_game_bundled": false,
+  "purpose": "Developer reconstruction delta; standalone setup embeds a separately verified complete game bundle"
+}

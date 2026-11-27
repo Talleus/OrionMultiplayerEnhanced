@@ -1,0 +1,699 @@
+--- a/orion/ui/lobby/CharacterPageUI.as
++++ b/orion/ui/lobby/CharacterPageUI.as
+@@ -4,6 +4,9 @@
+    import flash.display.*;
+    import flash.events.*;
+    import flash.geom.*;
++   import flash.net.SharedObject;
++   import flash.text.TextFormat;
++   import flash.utils.ByteArray;
+    import orion.*;
+    import orion.achievs.*;
+    import orion.data.*;
+@@ -68,6 +71,8 @@
+ 
+       private var _showHelmetButton:ToggleButtonUI;
+ 
++      private var _nicknameBox:TextBoxUI;
++
+       private var _customizePanel:PanelUI;
+ 
+       private var _customizeTabs:Vector.<TabButtonUI>;
+@@ -81,6 +86,18 @@
+       private var achievCaptionLabel:LabelUI;
+ 
+       private var backgroundAchievements:Bitmap;
++
++      private var _profileCaption:LabelUI;
++
++      private var _profileButtons:Vector.<ButtonUI>;
++
++      private var _profileHitAreas:Vector.<Sprite>;
++
++      private var _profileDeleteButtons:Vector.<ButtonUI>;
++
++      private var _profiles:Array;
++
++      private var _activeProfileIndex:int = 0;
+ 
+       public function CharacterPageUI(param1:DisplayObjectContainer, param2:int = 0, param3:int = 0)
+       {
+@@ -108,6 +125,13 @@
+ 
+       override protected function addChildren() : void
+       {
++         var _fmt:TextFormat;
++         var _loc2_:int;
++         var _locProfileIndex_:int;
++         var _locProfileButton_:ButtonUI;
++         var _locProfileHitArea_:Sprite;
++         var _locDelIndex_:int;
++         var _locDelBtn_:ButtonUI;
+          var _loc1_:Bitmap = null;
+          var _loc3_:TabButtonUI = null;
+          super.addChildren();
+@@ -125,12 +149,44 @@
+          addChild(this._podiumMovieClip);
+          this._characterViewer = new CharacterViewerUI(this,108,190).setSize(200,300) as CharacterViewerUI;
+          this._genderPanel = new PanelUI(this);
+-         this._maleButton = new RadioButtonUI(this._genderPanel,76,570).setGroupName("gender").setImage(Images.BUTTON_MALE).setToolTipTextKey("ui_tooltip_male").setSize(39,34) as RadioButtonUI;
+-         this._femaleButton = new RadioButtonUI(this._genderPanel,115,570).setGroupName("gender").setImage(Images.BUTTON_FEMALE).setToolTipTextKey("ui_tooltip_female").setSize(39,34) as RadioButtonUI;
+-         this._showHelmetButton = new ToggleButtonUI(this,286,570).setImage(Images.BUTTON_HELMET).setToolTipTextKey("ui_tooltip_show_helmet").setSize(39,34) as ToggleButtonUI;
++         this._maleButton = new RadioButtonUI(this._genderPanel,61,570).setGroupName("gender").setImage(Images.BUTTON_MALE).setToolTipTextKey("ui_tooltip_male").setSize(39,34) as RadioButtonUI;
++         this._femaleButton = new RadioButtonUI(this._genderPanel,100,570).setGroupName("gender").setImage(Images.BUTTON_FEMALE).setToolTipTextKey("ui_tooltip_female").setSize(39,34) as RadioButtonUI;
++         this._showHelmetButton = new ToggleButtonUI(this,301,570).setImage(Images.BUTTON_HELMET).setToolTipTextKey("ui_tooltip_show_helmet").setSize(39,34) as ToggleButtonUI;
++         this._nicknameBox = new TextBoxUI(this,145,570).setMaxLength(16).setSize(140,28) as TextBoxUI;
++         this._nicknameBox.limitByWidth = true;
++         this._nicknameBox.textField.embedFonts = false;
++         this._nicknameBox.textField.textColor = 16777215;
++         _fmt = new TextFormat("Verdana",16,16777215);
++         _fmt.align = "center";
++         this._nicknameBox.textField.defaultTextFormat = _fmt;
++         this._nicknameBox.textField.setTextFormat(_fmt);
++         this._nicknameBox.textField.addEventListener("change",function(e:*):void
++         {
++            var so:SharedObject;
++            var nickname:String = _nicknameBox.textField.text.replace(/^\s+|\s+$/g,"");
++            if(Context.savedCustomize == null)
++            {
++               Context.savedCustomize = {};
++            }
++            Context.savedCustomize.name = nickname;
++            if(Context.cachedPlayerData != null)
++            {
++               Context.cachedPlayerData.name = nickname;
++            }
++            so = SharedObject.getLocal("test");
++            so.data.nickname = nickname;
++            try
++            {
++               so.flush();
++            }
++            catch(error:Error)
++            {
++            }
++            save();
++         });
+          this._customizePanel = new PanelUI(this);
+          this._customizeTabs = new Vector.<TabButtonUI>(3,true);
+-         var _loc2_:int = 0;
++         _loc2_ = 0;
+          while(_loc2_ < this._customizeTabs.length)
+          {
+             _loc3_ = new TabButtonUI(this._customizePanel);
+@@ -148,6 +204,39 @@
+          this.achievScrollBar = new BrownScrollBarUI(this,767,60);
+          this.achievScrollBar.setDownButtonY(503);
+          this._achievList = new AchievListUI(this,416,60).setSelectable(false).setScroll(this.achievScrollBar.scrollBar) as AchievListUI;
++         this._profileCaption = new LabelUI(this).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setVerticalAlign(LabelUI.MIDDLE_ALIGN).setText(Context.app._choosedLanguage == "ru" ? "ПРОФИЛИ" : "PROFILES").setFont(Fonts.ZANTROKE,17,16777215).addFilter(UIStyle.BLACK_STROKE_FILTER).setSize(580,28) as LabelUI;
++         this._profileButtons = new Vector.<ButtonUI>(3,true);
++         this._profileHitAreas = new Vector.<Sprite>(3,true);
++         _locProfileIndex_ = 0;
++         _locProfileButton_ = null;
++         _locProfileHitArea_ = null;
++         while(_locProfileIndex_ < this._profileButtons.length)
++         {
++            _locProfileButton_ = new ButtonUI(this).setTextFont(Fonts.ZANTROKE,12,16777215).setTextFilters(UIStyle.BLACK_STROKE_FILTER).setImage(Images.BUTTON_SET_AVATAR).setMargin(0,2).setSize(190,49) as ButtonUI;
++            _locProfileButton_.tag = _locProfileIndex_;
++            _locProfileButton_.mouseChildren = false;
++            this._profileButtons[_locProfileIndex_] = _locProfileButton_;
++            _locProfileHitArea_ = new Sprite();
++            _locProfileHitArea_.name = "profileHit" + _locProfileIndex_;
++            _locProfileHitArea_.graphics.beginFill(0,0.01);
++            _locProfileHitArea_.graphics.drawRect(0,0,190,49);
++            _locProfileHitArea_.graphics.endFill();
++            _locProfileHitArea_.mouseEnabled = false;
++            _locProfileHitArea_.mouseChildren = false;
++            addChild(_locProfileHitArea_);
++            this._profileHitAreas[_locProfileIndex_] = _locProfileHitArea_;
++            _locProfileIndex_++;
++         }
++         this._profileDeleteButtons = new Vector.<ButtonUI>(3,true);
++         _locDelIndex_ = 0;
++         while(_locDelIndex_ < this._profileDeleteButtons.length)
++         {
++            _locDelBtn_ = new ButtonUI(this).setImage(Images.BUTTON_GAME_INVENTORY_EXIT).setSize(29,28) as ButtonUI;
++            _locDelBtn_.tag = _locDelIndex_;
++            _locDelBtn_.visible = false;
++            this._profileDeleteButtons[_locDelIndex_] = _locDelBtn_;
++            _locDelIndex_++;
++         }
+          this.updatePosition();
+       }
+ 
+@@ -163,6 +252,18 @@
+          this._showHelmetButton.addEventListener(Event.SELECT,this._showHelmetButton_OnSelect);
+          this._customizePanel.addEventListener(Event.SELECT,this._customizePanel_OnSelect);
+          this._customizeList.addEventListener(Event.SELECT,this._customizeList_OnSelect);
++         var _locProfileIndex_:int = 0;
++         while(this._profileButtons != null && _locProfileIndex_ < this._profileButtons.length)
++         {
++            this._profileButtons[_locProfileIndex_].addEventListener(MouseEvent.CLICK,this._profileButton_OnClick);
++            _locProfileIndex_++;
++         }
++         var _locDelIndex_:int = 0;
++         while(this._profileDeleteButtons != null && _locDelIndex_ < this._profileDeleteButtons.length)
++         {
++            this._profileDeleteButtons[_locDelIndex_].addEventListener(MouseEvent.CLICK,this._profileDeleteButton_OnClick);
++            _locDelIndex_++;
++         }
+       }
+ 
+       override protected function removeEventListeners() : void
+@@ -172,22 +273,428 @@
+          this._showHelmetButton.removeEventListener(Event.SELECT,this._showHelmetButton_OnSelect);
+          this._customizePanel.removeEventListener(Event.SELECT,this._customizePanel_OnSelect);
+          this._customizeList.removeEventListener(Event.SELECT,this._customizeList_OnSelect);
++         var _locProfileIndex_:int = 0;
++         while(this._profileButtons != null && _locProfileIndex_ < this._profileButtons.length)
++         {
++            this._profileButtons[_locProfileIndex_].removeEventListener(MouseEvent.CLICK,this._profileButton_OnClick);
++            _locProfileIndex_++;
++         }
++         var _locDelIndex_:int = 0;
++         while(this._profileDeleteButtons != null && _locDelIndex_ < this._profileDeleteButtons.length)
++         {
++            this._profileDeleteButtons[_locDelIndex_].removeEventListener(MouseEvent.CLICK,this._profileDeleteButton_OnClick);
++            _locDelIndex_++;
++         }
+       }
+ 
+       public function onShow() : void
+       {
+-         var _loc1_:Object = Context.cachedPlayerData;
+-         this.setData(_loc1_,Context.savedCustomize);
++         this.ensureProfiles();
++         this.activateProfile(this._activeProfileIndex);
++         this.setData(Context.cachedPlayerData,Context.savedCustomize);
++         this.refreshProfileButtons();
+       }
+ 
+       public function save() : void
+       {
++         var so:SharedObject;
+          var _loc1_:Object = new Object();
+          _loc1_.gender = this._selectedGender;
+          _loc1_.hair = this._selectedHairIndex;
+          _loc1_.head = this._selectedHeadIndex;
+          _loc1_.hair_color = this._selectedHairColorIndex;
++         if(this._nicknameBox)
++         {
++            _loc1_.name = this._nicknameBox.textField.text.replace(/^\s+|\s+$/g,"");
++         }
+          Context.savedCustomize = _loc1_;
++         if(Context.cachedPlayerData != null)
++         {
++            Context.cachedPlayerData.name = _loc1_.name;
++         }
++         so = SharedObject.getLocal("test");
++         so.data.nickname = _loc1_.name;
++         try
++         {
++            so.flush();
++         }
++         catch(error:Error)
++         {
++         }
++         this.saveActiveProfileData(_loc1_);
++      }
++
++      private function ensureProfiles() : void
++      {
++         var _loc2_:Object;
++         var _loc3_:Object;
++         var _loc1_:SharedObject = SharedObject.getLocal("test");
++         this._profiles = _loc1_.data.playerProfiles as Array;
++         if(this._profiles == null)
++         {
++            this._profiles = [null,null,null];
++         }
++         while(this._profiles.length < 3)
++         {
++            this._profiles.push(null);
++         }
++         this._activeProfileIndex = _loc1_.data.activeProfileIndex != null ? int(_loc1_.data.activeProfileIndex) : 0;
++         if(this._activeProfileIndex < 0 || this._activeProfileIndex > 2)
++         {
++            this._activeProfileIndex = 0;
++         }
++         if(this._profiles[this._activeProfileIndex] == null)
++         {
++            if(this._activeProfileIndex == 0 && Context.cachedPlayerData != null)
++            {
++               _loc2_ = this.cloneObject(Context.cachedPlayerData);
++            }
++            else
++            {
++               _loc2_ = Context.app.createDefaultPlayerData(true,1,1,0,"");
++            }
++            _loc3_ = Context.savedCustomize != null ? this.cloneObject(Context.savedCustomize) : this.customizeFromData(_loc2_);
++            this._profiles[this._activeProfileIndex] = {
++               "data":_loc2_,
++               "customize":_loc3_
++            };
++         }
++         _loc1_.data.playerProfiles = this._profiles;
++         _loc1_.data.activeProfileIndex = this._activeProfileIndex;
++         try
++         {
++            _loc1_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      private function _profileButton_OnClick(param1:MouseEvent) : void
++      {
++         var _loc2_:ButtonUI = param1.currentTarget as ButtonUI;
++         var _loc3_:int = int(_loc2_.tag);
++         if(_loc3_ == this._activeProfileIndex)
++         {
++            return;
++         }
++         this.save();
++         if(this._profiles[_loc3_] == null)
++         {
++            var _loc4_:Object = Context.app.createDefaultPlayerData(true,1,1,0,"");
++            this._profiles[_loc3_] = {
++               "data":_loc4_,
++               "customize":this.customizeFromData(_loc4_)
++            };
++         }
++         this.activateProfile(_loc3_);
++         this.setData(Context.cachedPlayerData,Context.savedCustomize);
++         this.refreshProfileButtons();
++      }
++
++      private function _profileDeleteButton_OnClick(param1:MouseEvent) : void
++      {
++         var btn:ButtonUI;
++         var idx:int;
++         var profName:String;
++         var ru:Boolean;
++         var title:String;
++         var msg:String;
++         param1.stopPropagation();
++         playSound(Sounds.BUTTON_CLICK);
++         btn = param1.currentTarget as ButtonUI;
++         idx = int(btn.tag);
++         if(this._profiles == null || idx < 0 || idx >= this._profiles.length || this._profiles[idx] == null)
++         {
++            return;
++         }
++         profName = "";
++         if(this._profiles[idx].customize != null && this._profiles[idx].customize.name != null && String(this._profiles[idx].customize.name).length > 0)
++         {
++            profName = String(this._profiles[idx].customize.name);
++         }
++         else if(this._profiles[idx].data != null && this._profiles[idx].data.name != null && String(this._profiles[idx].data.name).length > 0)
++         {
++            profName = String(this._profiles[idx].data.name);
++         }
++         else
++         {
++            profName = Context.app._choosedLanguage == "ru" ? "ПЕРСОНАЖ " + (idx + 1) : "CHARACTER " + (idx + 1);
++         }
++         ru = Context.app._choosedLanguage == "ru";
++         title = ru ? "УДАЛИТЬ" : "DELETE";
++         msg = ru ? "Удалить профиль \"" + profName + "\" вместе с инвентарём?" : "Delete profile \"" + profName + "\" and all its items?";
++         Context.app.showConfirm(title,msg,function(ok:Boolean):void
++         {
++            if(ok)
++            {
++               deleteProfile(idx);
++            }
++         });
++      }
++
++      private function deleteProfile(param1:int) : void
++      {
++         var _locLegacySo_:SharedObject;
++         var _locNextIdx_:int;
++         var _locI_:int;
++         var _locFreshData_:Object;
++         var _loc1_:SharedObject = SharedObject.getLocal("test");
++         this._profiles[param1] = null;
++         _loc1_.data.playerProfiles = this._profiles;
++         if(param1 == 0)
++         {
++            try
++            {
++               _locLegacySo_ = SharedObject.getLocal("player");
++               _locLegacySo_.clear();
++               _locLegacySo_.flush();
++            }
++            catch(_locLegacyErr_:Error)
++            {
++            }
++         }
++         if(param1 == this._activeProfileIndex)
++         {
++            _locNextIdx_ = -1;
++            _locI_ = 0;
++            while(_locI_ < this._profiles.length)
++            {
++               if(this._profiles[_locI_] != null)
++               {
++                  _locNextIdx_ = _locI_;
++                  break;
++               }
++               _locI_++;
++            }
++            if(_locNextIdx_ == -1)
++            {
++               _locNextIdx_ = 0;
++               _locFreshData_ = Context.app.createDefaultPlayerData(true,1,1,0,"");
++               this._profiles[0] = {
++                  "data":_locFreshData_,
++                  "customize":this.customizeFromData(_locFreshData_)
++               };
++               _loc1_.data.playerProfiles = this._profiles;
++            }
++            this.activateProfile(_locNextIdx_);
++         }
++         try
++         {
++            _loc1_.flush();
++         }
++         catch(_locFlushErr_:Error)
++         {
++         }
++         this.setData(Context.cachedPlayerData,Context.savedCustomize);
++         this.refreshProfileButtons();
++      }
++
++      private function activateProfile(param1:int) : void
++      {
++         var _loc1_:Object;
++         var _loc2_:SharedObject;
++         this._activeProfileIndex = param1;
++         _loc1_ = this._profiles[param1];
++         Context.cachedPlayerData = this.cloneObject(_loc1_.data);
++         Context.savedCustomize = this.cloneObject(_loc1_.customize);
++         _loc2_ = SharedObject.getLocal("test");
++         _loc2_.data.playerProfiles = this._profiles;
++         _loc2_.data.activeProfileIndex = param1;
++         _loc2_.data.profileSelectionPending = true;
++         _loc2_.data.nickname = Context.savedCustomize != null && Context.savedCustomize.name != null ? String(Context.savedCustomize.name) : "";
++         try
++         {
++            _loc2_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++      }
++
++      private function saveActiveProfileData(param1:Object) : void
++      {
++         var _loc1_:Object;
++         var _loc2_:SharedObject;
++         if(this._profiles == null)
++         {
++            this.ensureProfiles();
++         }
++         _loc1_ = this.cloneObject(Context.cachedPlayerData != null ? Context.cachedPlayerData : Context.startingPlayerData);
++         _loc1_.gender = param1.gender;
++         _loc1_.hair = param1.hair;
++         _loc1_.head = param1.head;
++         _loc1_.hair_color = param1.hair_color;
++         _loc1_.name = param1.name;
++         this._profiles[this._activeProfileIndex] = {
++            "data":_loc1_,
++            "customize":this.cloneObject(param1)
++         };
++         Context.cachedPlayerData = this.cloneObject(_loc1_);
++         _loc2_ = SharedObject.getLocal("test");
++         _loc2_.data.playerProfiles = this._profiles;
++         _loc2_.data.activeProfileIndex = this._activeProfileIndex;
++         _loc2_.data.profileSelectionPending = false;
++         try
++         {
++            _loc2_.flush();
++         }
++         catch(error:Error)
++         {
++         }
++         this.refreshProfileButtons();
++      }
++
++      private function customizeFromData(param1:Object) : Object
++      {
++         if(param1 == null)
++         {
++            return {
++               "gender":true,
++               "hair":0,
++               "head":0,
++               "hair_color":0,
++               "name":""
++            };
++         }
++         return {
++            "gender":param1.gender,
++            "hair":param1.hair,
++            "head":param1.head,
++            "hair_color":param1.hair_color,
++            "name":(param1.name != null ? param1.name : "")
++         };
++      }
++
++      private function cloneObject(param1:Object) : Object
++      {
++         if(param1 == null)
++         {
++            return new Object();
++         }
++         var _loc2_:ByteArray = new ByteArray();
++         _loc2_.writeObject(param1);
++         _loc2_.position = 0;
++         return _loc2_.readObject();
++      }
++
++      private function refreshProfileButtons() : void
++      {
++         if(this._profileButtons == null || this._profiles == null)
++         {
++            return;
++         }
++         var _loc1_:Boolean = Context.app._choosedLanguage == "ru";
++         this._profileCaption.text = _loc1_ ? "ПРОФИЛИ" : "PROFILES";
++         var _loc2_:int = 0;
++         while(_loc2_ < this._profileButtons.length)
++         {
++            var _loc3_:Object = this._profiles[_loc2_];
++            var _loc4_:String = _loc1_ ? "ПУСТО" : "EMPTY";
++            if(_loc3_ != null && _loc3_.customize != null && _loc3_.customize.name != null && String(_loc3_.customize.name).length > 0)
++            {
++               _loc4_ = String(_loc3_.customize.name);
++            }
++            else if(_loc3_ != null && _loc3_.data != null && _loc3_.data.name != null && String(_loc3_.data.name).length > 0)
++            {
++               _loc4_ = String(_loc3_.data.name);
++            }
++            this._profileButtons[_loc2_].text = (_loc2_ == this._activeProfileIndex ? "> " : "") + (String(_loc2_ + 1)) + ": " + _loc4_;
++            this.updateProfileIcon(_loc2_,_loc3_);
++            if(this._profileDeleteButtons != null && _loc2_ < this._profileDeleteButtons.length && this._profileDeleteButtons[_loc2_] != null)
++            {
++               this._profileDeleteButtons[_loc2_].visible = _loc3_ != null;
++            }
++            _loc2_++;
++         }
++      }
++
++      private function updateProfileIcon(param1:int, param2:Object) : void
++      {
++         var _loc1_:Sprite;
++         var _loc2_:Bitmap;
++         var _loc3_:Object;
++         var _loc4_:Boolean;
++         var _loc5_:int;
++         var _loc6_:int;
++         var _loc7_:int;
++         var _loc8_:BitmapData;
++         var _locHeadData_:CustomizeListData;
++         var _loc9_:Bitmap;
++         if(this._profileHitAreas == null || this._profileHitAreas[param1] == null)
++         {
++            return;
++         }
++         _loc1_ = this._profileHitAreas[param1];
++         while(_loc1_.numChildren > 0)
++         {
++            _loc2_ = _loc1_.removeChildAt(0) as Bitmap;
++            if(_loc2_ != null && _loc2_.bitmapData != null)
++            {
++               _loc2_.bitmapData.dispose();
++            }
++         }
++         if(param2 == null)
++         {
++            return;
++         }
++         _loc3_ = param2.customize != null ? param2.customize : param2.data;
++         if(param1 == this._activeProfileIndex && this._customizeSelections != null)
++         {
++            _loc3_ = {
++               "gender":this._selectedGender,
++               "hair":this._selectedHairIndex,
++               "head":this._selectedHeadIndex,
++               "hair_color":this._selectedHairColorIndex
++            };
++         }
++         if(_loc3_ == null)
++         {
++            return;
++         }
++         _loc4_ = this._playerDrawing.gender;
++         _loc5_ = this._playerDrawing.hairIndex;
++         _loc6_ = this._playerDrawing.headIndex;
++         _loc7_ = this._playerDrawing.hairColorIndex;
++         _loc8_ = null;
++         if(param1 == this._activeProfileIndex)
++         {
++            this.setCustomizeSource();
++            if(this._headsSource != null && this._selectedHeadIndex >= 0 && this._selectedHeadIndex < this._headsSource.length)
++            {
++               _locHeadData_ = this._headsSource[this._selectedHeadIndex] as CustomizeListData;
++               if(_locHeadData_ != null && _locHeadData_.icon != null)
++               {
++                  _loc8_ = _locHeadData_.icon.clone();
++               }
++            }
++         }
++         try
++         {
++            if(_loc8_ == null)
++            {
++               this._playerDrawing.gender = _loc3_.gender != null ? Boolean(_loc3_.gender) : true;
++               this._playerDrawing.hairIndex = _loc3_.hair != null ? Math.max(0,Math.min(4,int(_loc3_.hair))) : 0;
++               this._playerDrawing.headIndex = _loc3_.head != null ? Math.max(0,Math.min(4,int(_loc3_.head))) : 0;
++               this._playerDrawing.hairColorIndex = _loc3_.hair_color != null ? Math.max(0,Math.min(4,int(_loc3_.hair_color))) : 0;
++               _loc8_ = this.createCustomizeIcon();
++            }
++            _loc9_ = new Bitmap(_loc8_);
++            _loc9_.smoothing = true;
++            _loc9_.width = 36;
++            _loc9_.height = 36;
++            _loc9_.x = 126;
++            _loc9_.y = 6;
++            _loc9_.mouseEnabled = false;
++            _loc1_.addChild(_loc9_);
++         }
++         catch(error:Error)
++         {
++         }
++         this._playerDrawing.gender = _loc4_;
++         this._playerDrawing.hairIndex = _loc5_;
++         this._playerDrawing.headIndex = _loc6_;
++         this._playerDrawing.hairColorIndex = _loc7_;
+       }
+ 
+       private function setData(param1:Object, param2:Object) : void
+@@ -197,10 +704,15 @@
+          var _loc8_:Object = null;
+          if(param2 != null)
+          {
+-            this._selectedGender = param2.gender;
+-            this._selectedHairIndex = param2.hair;
+-            this._selectedHeadIndex = param2.head;
+-            this._selectedHairColorIndex = param2.hair_color;
++            this._selectedGender = param2.gender != null ? param2.gender : param1.gender;
++            this._selectedHairIndex = param2.hair != null ? param2.hair : param1.hair;
++            this._selectedHeadIndex = param2.head != null ? param2.head : param1.head;
++            this._selectedHairColorIndex = param2.hair_color != null ? param2.hair_color : param1.hair_color;
++            if(this._nicknameBox && param2.name != null)
++            {
++               this._nicknameBox.text = param2.name;
++               this._nicknameBox.textField.text = param2.name;
++            }
+          }
+          else
+          {
+@@ -208,6 +720,11 @@
+             this._selectedHairIndex = param1.hair;
+             this._selectedHeadIndex = param1.head;
+             this._selectedHairColorIndex = param1.hair_color;
++            if(this._nicknameBox && param1.name != null)
++            {
++               this._nicknameBox.text = param1.name;
++               this._nicknameBox.textField.text = param1.name;
++            }
+          }
+          this._characterViewer.gender = this._selectedGender;
+          this._characterViewer.hairIndex = this._selectedHairIndex;
+@@ -224,7 +741,7 @@
+          this._customizeSelections[HEAD_CUSTOMIZE].selectedIndex = this._selectedHeadIndex;
+          this._customizeSelections[HAIR_COLOR_CUSTOMIZE].selectedIndex = this._selectedHairColorIndex;
+          var _loc4_:Object = param1.another_data;
+-         this._characterViewer.headArmorHidden = true;
++         this._characterViewer.headArmorHidden = this._showHelmetButton != null ? !this._showHelmetButton.selected : false;
+          this._characterViewer.gender = this._selectedGender;
+          this._characterViewer.hairIndex = this._selectedHairIndex;
+          this._characterViewer.headIndex = this._selectedHeadIndex;
+@@ -337,6 +854,7 @@
+             this.showHairColorCustomize();
+          }
+          this._customizeList.setSelection(this._customizeSelections[this._currentCustomize]);
++         this.refreshProfileButtons();
+       }
+ 
+       private function showHeadCustomize() : void
+@@ -435,6 +953,8 @@
+             this._customizeList.copySelection(this._customizeSelections[this._currentCustomize]);
+             this.showCustomize();
+          }
++         this.refreshProfileButtons();
++         this.save();
+       }
+ 
+       private function _showHelmetButton_OnSelect(param1:Event) : void
+@@ -478,6 +998,8 @@
+             this._selectedHairColorIndex = this._customizeList.selectedIndex;
+             this._characterViewer.hairColorIndex = this._selectedHairColorIndex;
+          }
++         this.refreshProfileButtons();
++         this.save();
+       }
+ 
+       override protected function onStageResize() : void
+@@ -498,9 +1020,35 @@
+          this._characterViewer.x = stage.stageWidth * (210 / 800) - 102;
+          this._characterViewer.y = stage.stageHeight * (210 / 640) - 20;
+          this._podiumMovieClip.y = stage.stageHeight * (210 / 640) + 395 * _loc2_;
+-         this._maleButton.y = stage.stageHeight * (210 / 640) + 360 * _loc2_;
+-         this._femaleButton.y = stage.stageHeight * (210 / 640) + 360 * _loc2_;
+-         this._showHelmetButton.y = stage.stageHeight * (210 / 640) + 360 * _loc2_;
++         this._maleButton.y = stage.stageHeight * (210 / 640) + 290 * _loc2_;
++         this._femaleButton.y = stage.stageHeight * (210 / 640) + 290 * _loc2_;
++         this._showHelmetButton.y = stage.stageHeight * (210 / 640) + 290 * _loc2_;
++         if(this._nicknameBox)
++         {
++            this._nicknameBox.x = stage.stageWidth * (210 / 800) - 60;
++            this._nicknameBox.y = stage.stageHeight * (210 / 640) + 290 * _loc2_ + 3;
++         }
++         if(this._profileCaption != null && this._profileButtons != null && this._profileHitAreas != null)
++         {
++            var _locProfilesWidth_:Number = 590;
++            var _locProfilesStartX_:Number = stage.stageWidth * 0.5 - _locProfilesWidth_ * 0.5;
++            this._profileCaption.x = _locProfilesStartX_ + 5;
++            this._profileCaption.y = 10;
++            var _locProfilePositionIndex_:int = 0;
++            while(_locProfilePositionIndex_ < this._profileButtons.length)
++            {
++               this._profileButtons[_locProfilePositionIndex_].x = _locProfilesStartX_ + _locProfilePositionIndex_ * 200;
++               this._profileButtons[_locProfilePositionIndex_].y = 42;
++               this._profileHitAreas[_locProfilePositionIndex_].x = this._profileButtons[_locProfilePositionIndex_].x;
++               this._profileHitAreas[_locProfilePositionIndex_].y = this._profileButtons[_locProfilePositionIndex_].y;
++               if(this._profileDeleteButtons != null && _locProfilePositionIndex_ < this._profileDeleteButtons.length && this._profileDeleteButtons[_locProfilePositionIndex_] != null)
++               {
++                  this._profileDeleteButtons[_locProfilePositionIndex_].x = this._profileButtons[_locProfilePositionIndex_].x + 162;
++                  this._profileDeleteButtons[_locProfilePositionIndex_].y = 44;
++               }
++               _locProfilePositionIndex_++;
++            }
++         }
+          var _loc3_:Number = stage.stageWidth - 382 - 14;
+          var _loc4_:Number = stage.stageHeight * 0.5 - 292 - 5;
+          this.backgroundAchievements.x = _loc3_;

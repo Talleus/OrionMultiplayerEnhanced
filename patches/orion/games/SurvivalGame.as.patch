@@ -1,0 +1,98 @@
+--- a/orion/games/SurvivalGame.as
++++ b/orion/games/SurvivalGame.as
+@@ -34,7 +34,7 @@
+          setItemsInteract(new DefaultItemsInteract());
+          this._worldPreview = new WorldPreview();
+          this._worldPreview.completeSignal.addOnce(this.onWorldPreviewComplete);
+-         _saveEnabled = true;
++         _saveEnabled = Context.multiplayer == null || !Context.multiplayer.isClient;
+          _warehouseEnabled = true;
+       }
+ 
+@@ -54,7 +54,14 @@
+       {
+          this._worldPreview = null;
+          this.setCutsceneMode(false);
+-         world.spawnPlayerAsOwner();
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            world.spawnPlayerAsGuest();
++         }
++         else
++         {
++            world.spawnPlayerAsOwner();
++         }
+          runed();
+       }
+ 
+@@ -89,18 +96,67 @@
+ 
+       override protected function updateCommands() : void
+       {
++         if(this.uiPauseOpen)
++         {
++            return;
++         }
++         var _locChatActive_:Boolean = Context.multiplayer != null && Context.multiplayer.chatInputActive;
++         if(!_locChatActive_ && input.keyUp(Hotkeys.WORLD_MAP) && player.alive)
++         {
++            if(this._survivalGameScreen != null)
++            {
++               this._survivalGameScreen.toggleWorldMap();
++            }
++         }
+          if(input.keyUp(Hotkeys.INVENTORY) && player.alive)
+          {
+             showInventory();
+          }
+-         if(input.keyUp(Hotkeys.PAUSE1) || input.keyUp(Hotkeys.PAUSE2))
+-         {
+-            showPause();
++         if(input.keyUp(Hotkeys.PAUSE1))
++         {
++            if(Context.multiplayer != null && Context.multiplayer.suppressPauseOnce)
++            {
++               Context.multiplayer.suppressPauseOnce = false;
++            }
++            else
++            {
++               if(Context.multiplayer != null)
++               {
++                  Context.multiplayer.chatInputActive = false;
++               }
++               input.freeAll();
++               showPause();
++            }
+          }
+       }
+ 
+       override protected function updatePlayer(param1:int) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            if(!player.alive)
++            {
++               if(!this._playerDied)
++               {
++                  this._playerDied = true;
++                  player.death();
++                  world.despawnPlayer();
++                  hideInterface();
++               }
++            }
++            else if(this._playerDied)
++            {
++               this._playerDied = false;
++               var _locNetworkX_:Number = player.position.x;
++               var _locNetworkY_:Number = player.position.y;
++               var _locNetworkHealth_:int = player.health;
++               player.reset();
++               player.health = _locNetworkHealth_;
++               world.spawnPlayer(int(_locNetworkX_),int(_locNetworkY_));
++               showInterface();
++            }
++            return;
++         }
+          if(!player.alive)
+          {
+             if(this._playerDied)

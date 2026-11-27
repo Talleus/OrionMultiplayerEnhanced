@@ -1,0 +1,30 @@
+--- a/Context.as
++++ b/Context.as
+@@ -10,6 +10,7 @@
+    import orion.effects.EffectManager;
+    import orion.graphics.AtlasManager;
+    import orion.lighting.LightManager;
++   import orion.multiplayer.MultiplayerManager;
+    import orion.quality.ILogger;
+    import orion.sounds.SoundManager;
+    import orion.worlds.World;
+@@ -53,6 +54,8 @@
+       public static var screen:OrionScreen;
+ 
+       public static var camera:Camera;
++
++      public static var multiplayer:MultiplayerManager;
+ 
+       public static var savingType:int = SavingType.NONE;
+ 
+@@ -141,5 +144,10 @@
+          camera = param1;
+          GameComponent.camera = param1;
+       }
++
++      public static function provideMultiplayer(param1:MultiplayerManager) : void
++      {
++         multiplayer = param1;
++      }
+    }
+ }

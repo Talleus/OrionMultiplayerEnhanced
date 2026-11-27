@@ -1,0 +1,11 @@
+--- a/orion/Hotkeys.as
++++ b/orion/Hotkeys.as
+@@ -14,6 +14,8 @@
+       public static const PAUSE2:int = Key.P;
+ 
+       public static const DEBUG_PANEL:int = Key.BACKSPACE;
++
++      public static const WORLD_MAP:int = Key.M;
+ 
+       public function Hotkeys()
+       {

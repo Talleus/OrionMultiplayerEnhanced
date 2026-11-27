@@ -1,0 +1,107 @@
+--- a/main/GameSaver.as
++++ b/main/GameSaver.as
+@@ -30,6 +30,15 @@
+ 
+       public function hardSavePlanet(param1:Function, param2:Function) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.active)
++         {
++            this.saveMultiplayerSession();
++            if(param1 != null)
++            {
++               param1();
++            }
++            return;
++         }
+          var _loc3_:Game = this._app.gameProcess.game;
+          var _loc4_:Object = new Object();
+          _loc3_.savePlayer(_loc4_);
+@@ -44,6 +53,19 @@
+ 
+       public function softSavePlanet(param1:Function, param2:Function, param3:Function) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.active)
++         {
++            this.saveMultiplayerSession();
++            if(param1 != null)
++            {
++               param1();
++            }
++            if(param2 != null)
++            {
++               param2();
++            }
++            return;
++         }
+          var _loc4_:Game = this._app.gameProcess.game;
+          var _loc5_:Object = new Object();
+          _loc4_.savePlayer(_loc5_);
+@@ -59,6 +81,15 @@
+ 
+       public function hardSavePlayer(param1:Function, param2:Function) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.active)
++         {
++            this._app.saveCurrentProfile();
++            if(param1 != null)
++            {
++               param1();
++            }
++            return;
++         }
+          var _loc3_:Game = this._app.gameProcess.game;
+          var _loc4_:Object = new Object();
+          _loc3_.savePlayer(_loc4_);
+@@ -73,6 +104,19 @@
+ 
+       public function softSavePlayer(param1:Function, param2:Function, param3:Function) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.active)
++         {
++            this._app.saveCurrentProfile();
++            if(param1 != null)
++            {
++               param1();
++            }
++            if(param2 != null)
++            {
++               param2();
++            }
++            return;
++         }
+          var _loc4_:Game = this._app.gameProcess.game;
+          var _loc5_:Object = new Object();
+          _loc4_.savePlayer(_loc5_);
+@@ -88,6 +132,17 @@
+ 
+       public function backgroundSavePlanet(param1:Function, param2:Function) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.active)
++         {
++            this._backgroundSaving = true;
++            this.saveMultiplayerSession();
++            this._backgroundSaving = false;
++            if(param1 != null)
++            {
++               param1();
++            }
++            return;
++         }
+          this._backgroundSaving = true;
+          var _loc3_:Game = this._app.gameProcess.game;
+          var _loc4_:Object = new Object();
+@@ -134,5 +189,14 @@
+       {
+          Context.cachedPlayerData = param1;
+       }
++
++      private function saveMultiplayerSession() : void
++      {
++         this._app.saveCurrentProfile();
++         if(Context.multiplayer != null && Context.multiplayer.isHost)
++         {
++            this._app.saveActiveMultiplayerWorld();
++         }
++      }
+    }
+ }

@@ -1,0 +1,13 @@
+--- a/orion/ui/game/player_dialog/InventoryPanelUI.as
++++ b/orion/ui/game/player_dialog/InventoryPanelUI.as
+@@ -147,6 +147,10 @@
+          {
+             this._inventory.items[param1.index] = param2;
+          }
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            Context.multiplayer.notifyLocalInventoryLayoutChanged();
++         }
+       }
+ 
+       public function getItem(param1:int) : ItemStack

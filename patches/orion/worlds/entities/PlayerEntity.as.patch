@@ -1,0 +1,55 @@
+--- a/orion/worlds/entities/PlayerEntity.as
++++ b/orion/worlds/entities/PlayerEntity.as
+@@ -18,6 +18,8 @@
+ 
+       public var canChangeExperience:Boolean = true;
+ 
++      public var suppressNextDeathExperienceLoss:Boolean = false;
++
+       private var _experienceValue:int;
+ 
+       private var _experienceValueRand:int;
+@@ -112,10 +114,11 @@
+       override public function death() : void
+       {
+          var _loc2_:BuffEffect = null;
+-         if(this.canChangeExperience)
++         if(this.canChangeExperience && !this.suppressNextDeathExperienceLoss)
+          {
+             this.experience = Experience.getExperienceAfterDeath(this.experience);
+          }
++         this.suppressNextDeathExperienceLoss = false;
+          disposeEffects();
+          clearItemsEffects();
+          var _loc1_:* = int(buffsEffects.length - 1);
+@@ -135,20 +138,30 @@
+ 
+       override public function creatureAttacking(param1:int, param2:CreatureEntity) : void
+       {
++         var _loc3_:Boolean = alive;
+          if(this._friendlyForGnomes)
+          {
+             this.informGnomesAboutAttack(param2);
+          }
+          super.creatureAttacking(this.protectFromDamage(param1),param2);
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer["onPlayerDamagedByPlayer"](this,param2,_loc3_);
++         }
+       }
+ 
+       override public function projectileAttacking(param1:int, param2:ProjectileEntity) : void
+       {
++         var _loc3_:Boolean = alive;
+          if(this._friendlyForGnomes)
+          {
+             this.informGnomesAboutAttack(param2.owner);
+          }
+          super.projectileAttacking(this.protectFromDamage(param1),param2);
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer["onPlayerDamagedByPlayer"](this,param2 == null ? null : param2.owner,_loc3_);
++         }
+       }
+ 
+       override public function explosionDamage(param1:int) : void

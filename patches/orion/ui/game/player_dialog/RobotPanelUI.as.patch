@@ -1,0 +1,35 @@
+--- a/orion/ui/game/player_dialog/RobotPanelUI.as
++++ b/orion/ui/game/player_dialog/RobotPanelUI.as
+@@ -46,6 +46,10 @@
+       public function setItem(param1:ItemViewerUI, param2:ItemStack) : void
+       {
+          this._burner.items[param1.index] = param2;
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            Context.multiplayer.notifyTileInventoryLayoutChanged(this._burner);
++         }
+       }
+ 
+       public function getItem(param1:int) : ItemStack
+@@ -71,7 +75,7 @@
+             _loc2_ = new ItemViewerUI(this);
+             _loc2_.setIndex(_loc1_);
+             _loc2_.x = 138 + 32 * (_loc1_ % 6) + 2 * (_loc1_ % 6);
+-            _loc2_.y = 166 + 32 * int(_loc1_ / 6) + 2 * int(_loc1_ / 6);
++            _loc2_.y = 166 + 32 * (int(_loc1_ / 6)) + 2 * (int(_loc1_ / 6));
+             this._itemsViewers[_loc1_] = _loc2_;
+             _loc1_++;
+          }
+@@ -103,6 +107,12 @@
+ 
+       public function _burnAll_OnClick(param1:MouseEvent) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            Context.multiplayer.requestTileAction(this._burner,2);
++            this._dialogueUI.specialClose();
++            return;
++         }
+          this._burner.clear();
+          var _loc2_:int = 0;
+          while(_loc2_ < this._itemsViewers.length)

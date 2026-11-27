@@ -1,0 +1,18 @@
+--- a/orion/worlds/items/consumable/ChangePositionPotionItem.as
++++ b/orion/worlds/items/consumable/ChangePositionPotionItem.as
+@@ -32,11 +32,12 @@
+                break;
+             }
+          }
+-         world.teleportPlayerTo(_loc2_,_loc3_);
++         param1.notDamageFromFirstFall();
++         param1.setPosition(_loc2_ * Tile.SIZE,_loc3_ * Tile.SIZE);
+          var _loc5_:FlashLightEffect = new FlashLightEffect(15,14090235,1,0.04);
+-         _loc5_.setPosition(world.player.center.x / Tile.SIZE,world.player.center.y / Tile.SIZE);
++         _loc5_.setPosition(param1.center.x / Tile.SIZE,param1.center.y / Tile.SIZE);
+          lighting.addEffect(_loc5_);
+-         effects.addEffect(Effect.TELEPORT).setTarget(world).setPosition(world.player.center.x,world.player.center.y);
++         effects.addEffect(Effect.TELEPORT).setTarget(world).setPosition(param1.center.x,param1.center.y);
+          sounds.play(Sounds.TELEPORT);
+       }
+    }

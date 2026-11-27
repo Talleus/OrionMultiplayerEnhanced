@@ -1,0 +1,59 @@
+--- a/orion/worlds/entities/ItemEntity.as
++++ b/orion/worlds/entities/ItemEntity.as
+@@ -41,6 +41,8 @@
+       private var _velocity:Point = new Point();
+ 
+       private var _needFlyToPlayer:Boolean;
++
++      private var _networkPickupTimer:int;
+ 
+       public function ItemEntity(param1:Number, param2:Number, param3:ItemStack, param4:int = 0, param5:int = 0)
+       {
+@@ -90,6 +92,10 @@
+       override public function update(param1:int) : void
+       {
+          var _loc2_:PlayerEntity = null;
++         if(this._networkPickupTimer > 0)
++         {
++            this._networkPickupTimer -= param1;
++         }
+          var _loc3_:Boolean = false;
+          var _loc4_:Boolean = false;
+          var _loc5_:CharacterInventory = null;
+@@ -105,6 +111,10 @@
+             {
+                active = false;
+                _loc2_.onPickUpItem(this.itemStack);
++               if(Context.multiplayer != null)
++               {
++                  Context.multiplayer.markDynamicWorldDirty();
++               }
+             }
+          }
+          else
+@@ -143,11 +153,21 @@
+             center.y = position.y + height * 0.5;
+             if(this._velocity.x == 0 && (this._velocity.y >= 0 && this._velocity.y <= 0.1 || this._underliquid) && position.x - RADIUS_ACTIVITY <= _loc2_.position.x + _loc2_.width && position.x + width + RADIUS_ACTIVITY >= _loc2_.position.x && position.y - RADIUS_ACTIVITY <= _loc2_.position.y + _loc2_.height && position.y + height + RADIUS_ACTIVITY >= _loc2_.position.y)
+             {
+-               _loc5_ = game.inventory;
+-               if(_loc5_.canAdd(this.itemStack))
++               if(Context.multiplayer != null && Context.multiplayer.isClient)
+                {
+-                  this._needFlyToPlayer = true;
+-                  _loc5_.add(this.itemStack);
++                  if(this._networkPickupTimer <= 0 && Context.multiplayer.requestItemPickup(this))
++                  {
++                     this._networkPickupTimer = 500;
++                  }
++               }
++               else
++               {
++                  _loc5_ = game.inventory;
++                  if(_loc5_.canAdd(this.itemStack))
++                  {
++                     this._needFlyToPlayer = true;
++                     _loc5_.add(this.itemStack);
++                  }
+                }
+             }
+          }

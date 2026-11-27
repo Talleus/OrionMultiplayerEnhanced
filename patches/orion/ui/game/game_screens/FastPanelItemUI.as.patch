@@ -1,0 +1,42 @@
+--- a/orion/ui/game/game_screens/FastPanelItemUI.as
++++ b/orion/ui/game/game_screens/FastPanelItemUI.as
+@@ -3,6 +3,7 @@
+    import flash.display.*;
+    import orion.*;
+    import orion.inventories.*;
++   import orion.ui.UIStyle;
+    import orion.ui.base.*;
+    import orion.ui.game.*;
+ 
+@@ -13,10 +14,31 @@
+ 
+       private var _itemCount:int = -1;
+ 
++      private var _slotKeyLabel:LabelUI;
++
+       public function FastPanelItemUI(param1:DisplayObjectContainer, param2:int = 0, param3:int = 0)
+       {
+          super(param1,param2,param3);
+          _dynamiclyUpdateEnabled = true;
++      }
++
++      override protected function addChildren() : void
++      {
++         super.addChildren();
++         this._slotKeyLabel = new LabelUI(this,2,2).setAutoSize(true).setSystemFont("Arial",9,14540253).addFilter(UIStyle.BLACK_STROKE_FILTER) as LabelUI;
++         if(_index != -1)
++         {
++            this._slotKeyLabel.setText(String(_index + 1));
++         }
++      }
++
++      override public function setIndex(param1:int) : void
++      {
++         super.setIndex(param1);
++         if(this._slotKeyLabel != null)
++         {
++            this._slotKeyLabel.setText(String(param1 + 1));
++         }
+       }
+ 
+       override protected function dynamiclyUpdate(param1:int) : void

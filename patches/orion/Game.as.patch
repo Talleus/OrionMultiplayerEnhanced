@@ -1,0 +1,409 @@
+--- a/orion/Game.as
++++ b/orion/Game.as
+@@ -6,6 +6,7 @@
+    import flash.display.*;
+    import flash.events.*;
+    import flash.geom.*;
++   import flash.net.SharedObject;
+    import flash.utils.*;
+    import orion.achievs.*;
+    import orion.effects.*;
+@@ -41,6 +42,8 @@
+ 
+       private static const HIGHSCORES_TIME:int = 60 * 1000;
+ 
++      public static var INSTANCE_COUNTER:int = 0;
++
+       public var type:int;
+ 
+       public var runned:Boolean;
+@@ -96,6 +99,16 @@
+       protected var _isCutsceneMode:Boolean;
+ 
+       protected var _creepyEffect:CreepyEffect = new CreepyEffect();
++
++      public var instanceId:int = 0;
++
++      public var runStep:String = "none";
++
++      public var runCompleted:Boolean = false;
++
++      public var uiPauseOpen:Boolean = false;
++
++      private var _diagWritten:Boolean = false;
+ 
+       protected var _saveEnabled:Boolean;
+ 
+@@ -167,6 +180,14 @@
+          this.camera = param2.camera;
+          this.world = param2.world;
+          this.baseInit();
++         this.instanceId = ++INSTANCE_COUNTER;
++         try
++         {
++            Context.console.writeData("Game instance #" + this.instanceId + " created (type " + param1 + ")");
++         }
++         catch(_logError_:Error)
++         {
++         }
+       }
+ 
+       public function get gameLoopPause() : Boolean
+@@ -197,6 +218,7 @@
+ 
+       public function dispose() : void
+       {
++         this.uiPauseOpen = false;
+          this.topUiLayer.dispose();
+          this.middleUiLayer.dispose();
+          this.backUiLayer.dispose();
+@@ -326,65 +348,142 @@
+ 
+       public function update(param1:int) : void
+       {
++         var _locChatActive_:Boolean;
++         var _diag_:String;
+          var _loc2_:Boolean = false;
+-         if(!this._isCutsceneMode)
+-         {
+-            if(this.input.keyUp(Hotkeys.INTERFACE) && this.player.alive)
+-            {
+-               if(this._gameScreen.visible)
+-               {
+-                  this.hideInterface();
+-               }
+-               else
++         try
++         {
++            _locChatActive_ = Context.multiplayer != null && Context.multiplayer.chatInputActive;
++            if(_locChatActive_)
++            {
++               this.input.freeAll();
++               if(!this._gameScreen.visible && this.player.alive)
+                {
+                   this.showInterface();
+                }
+             }
+-            this.updateCommands();
+-         }
+-         this.camera.update();
+-         this.screen.update();
+-         if(!this._isCutsceneMode)
+-         {
+-            if(this._tileTooltip.shown)
+-            {
+-               this._tileTooltip.hideHint();
+-            }
+-            this.controller.update(param1);
+-            this.updateControl(param1);
+-         }
+-         this.world.update(param1);
+-         this.updatePlayer(param1);
+-         if(!this._isCutsceneMode)
+-         {
+-            this._creaturesHints.update(param1);
+-            _loc2_ = this._playerTooltip.updateHint(param1);
+-            if(_loc2_ && this._needShowTutorialQuest)
+-            {
+-               this._needShowTutorialQuest = false;
+-               this._gameScreen.showTutorialQuest(this._tutorialQuestText,this._tutorialQuestIcon,this._tutorialQuestItems);
+-            }
+-            if(this._saveEnabled)
+-            {
+-               this._savingCooldownTimer -= param1;
+-               if(this._savingCooldownTimer < 0)
+-               {
+-                  this._savingCooldownTimer = 0;
+-               }
+-            }
+-            if(this._saveEnabled && !this._autosaving && this.statistics.savedPlanet)
+-            {
+-               this.updateAutosave(param1);
+-            }
+-            if(this._warehouseEnabled)
+-            {
+-               this.updateWarehouse(param1);
+-            }
+-            if(this._creepyEffect.active)
+-            {
+-               this._creepyEffect.update(param1);
+-            }
+-            this.updateHighscores(param1);
++            if(!this._isCutsceneMode)
++            {
++               if(!_locChatActive_ && this.input.keyUp(Hotkeys.INTERFACE) && this.player.alive)
++               {
++                  if(this._gameScreen.visible)
++                  {
++                     this.hideInterface();
++                  }
++                  else
++                  {
++                     this.showInterface();
++                  }
++               }
++               if(!_locChatActive_)
++               {
++                  this.updateCommands();
++               }
++            }
++            this.camera.update();
++            this.screen.update();
++            if(!this._isCutsceneMode && !this.uiPauseOpen)
++            {
++               if(this._tileTooltip.shown)
++               {
++                  this._tileTooltip.hideHint();
++               }
++               this.controller.update(param1);
++               this.updateControl(param1);
++            }
++            this.world.update(param1);
++            this.updatePlayer(param1);
++            if(!this._isCutsceneMode)
++            {
++               this._creaturesHints.update(param1);
++               _loc2_ = this._playerTooltip.updateHint(param1);
++               if(_loc2_ && this._needShowTutorialQuest)
++               {
++                  this._needShowTutorialQuest = false;
++                  this._gameScreen.showTutorialQuest(this._tutorialQuestText,this._tutorialQuestIcon,this._tutorialQuestItems);
++               }
++               if(this._saveEnabled)
++               {
++                  this._savingCooldownTimer -= param1;
++                  if(this._savingCooldownTimer < 0)
++                  {
++                     this._savingCooldownTimer = 0;
++                  }
++               }
++               if(this._saveEnabled && !this._autosaving && this.statistics.savedPlanet)
++               {
++                  this.updateAutosave(param1);
++               }
++               if(this._warehouseEnabled)
++               {
++                  this.updateWarehouse(param1);
++               }
++               if(this._creepyEffect.active)
++               {
++                  this._creepyEffect.update(param1);
++               }
++               this.updateHighscores(param1);
++            }
++         }
++         catch(_diagError_:Error)
++         {
++            _diag_ = "";
++            if(this.input == null)
++            {
++               _diag_ += "input ";
++            }
++            if(this.player == null)
++            {
++               _diag_ += "player ";
++            }
++            if(this._gameScreen == null)
++            {
++               _diag_ += "_gameScreen ";
++            }
++            if(this.camera == null)
++            {
++               _diag_ += "camera ";
++            }
++            if(this.screen == null)
++            {
++               _diag_ += "screen ";
++            }
++            if(this.world == null)
++            {
++               _diag_ += "world ";
++            }
++            if(this._tileTooltip == null)
++            {
++               _diag_ += "_tileTooltip ";
++            }
++            if(this.controller == null)
++            {
++               _diag_ += "controller ";
++            }
++            if(this._creaturesHints == null)
++            {
++               _diag_ += "_creaturesHints ";
++            }
++            if(this._playerTooltip == null)
++            {
++               _diag_ += "_playerTooltip ";
++            }
++            if(_diag_.length == 0)
++            {
++               _diag_ = "none-of-usual-members";
++            }
++            if(!this._diagWritten)
++            {
++               this._diagWritten = true;
++               try
++               {
++                  Context.console.writeError("Game.update diag [inst #" + this.instanceId + " runStep=" + this.runStep + "]: [" + _diag_ + "] " + _diagError_.getStackTrace());
++               }
++               catch(_e2_:Error)
++               {
++               }
++            }
++            return;
+          }
+       }
+ 
+@@ -467,14 +566,87 @@
+ 
+       public function run() : void
+       {
++         var _so2_:SharedObject;
++         var _arr2_:Array;
++         var _step_:String = "none";
++         var _runError_:Error = null;
+          this.runned = true;
+-         this.world.init();
+-         this.world.setPlayer(this.player);
+-         this.world.prepareToGame();
+-         this.createInterface();
+-         this._tutorial.setGameScreen(this._gameScreen);
+-         this.sounds.effectsVolume = 0;
+-         this.afterRun();
++         try
++         {
++            _step_ = "world.init";
++            this.runStep = _step_;
++            this.world.init();
++            _step_ = "setPlayer";
++            this.runStep = _step_;
++            this.world.setPlayer(this.player);
++            _step_ = "prepareToGame";
++            this.runStep = _step_;
++            this.world.prepareToGame();
++            _step_ = "createInterface";
++            this.runStep = _step_;
++            this.createInterface();
++            _step_ = "tutorial.setGameScreen";
++            this.runStep = _step_;
++            this._tutorial.setGameScreen(this._gameScreen);
++            this.sounds.effectsVolume = 0;
++            _step_ = "afterRun";
++            this.runStep = _step_;
++            this.afterRun();
++            _step_ = "done";
++            this.runStep = _step_;
++            this.runCompleted = true;
++         }
++         catch(_caughtRunError_:Error)
++         {
++            _runError_ = _caughtRunError_;
++         }
++         if(_runError_ != null)
++         {
++            try
++            {
++               Context.console.writeError("Game.run instance #" + this.instanceId + " FAILED at step [" + _step_ + "]: " + _runError_.message + "\n" + _runError_.getStackTrace());
++            }
++            catch(_logError2_:Error)
++            {
++            }
++            try
++            {
++               _so2_ = SharedObject.getLocal("crash_log");
++               _arr2_ = _so2_.data.errors as Array;
++               if(_arr2_ == null)
++               {
++                  _arr2_ = [];
++               }
++               _arr2_.push("RUN inst#" + this.instanceId + " step=" + _step_ + " full=" + _runError_.toString() + "\n" + _runError_.getStackTrace());
++               while(_arr2_.length > 100)
++               {
++                  _arr2_.shift();
++               }
++               _so2_.data.errors = _arr2_;
++               try
++               {
++                  _so2_.flush();
++               }
++               catch(_flushError2_:Error)
++               {
++               }
++            }
++            catch(_fileError2_:Error)
++            {
++            }
++            if(this._gameScreen == null)
++            {
++               try
++               {
++                  this.createInterface();
++                  this._tutorial.setGameScreen(this._gameScreen);
++                  this.runStep = "recovered-interface";
++               }
++               catch(_recoverError_:Error)
++               {
++               }
++            }
++         }
+       }
+ 
+       public function stop() : void
+@@ -836,7 +1008,7 @@
+          this.onOpenPlayerDialog(_loc2_);
+       }
+ 
+-      public function showInventory_Chest(param1:Vector.<ItemStack>) : void
++      public function showInventory_Chest(param1:ChestTileEntity) : void
+       {
+          this.beforeOpenDialog();
+          var _loc2_:PlayerDialogUI = new PlayerDialogUI(Context.app);
+@@ -845,12 +1017,12 @@
+          this.onOpenPlayerDialog(_loc2_);
+       }
+ 
+-      public function showInventory_TreasureChest(param1:Vector.<ItemStack>) : void
++      public function showInventory_TreasureChest(param1:TreasureChestTileEntity) : void
+       {
+          this.beforeOpenDialog();
+          var _loc2_:String = Text.getValue("ui_lbl_treasure_chest");
+          var _loc3_:PlayerDialogUI = new PlayerDialogUI(Context.app);
+-         _loc3_.showSmallChestPanel(_loc2_,param1);
++         _loc3_.showSmallChestPanel(_loc2_,param1.items,param1);
+          _loc3_.addEventListener(DialogEvent.CLOSED,this.playerDialog_OnClosed);
+          this.onOpenPlayerDialog(_loc3_);
+       }
+@@ -973,8 +1145,23 @@
+ 
+       public function showPause() : void
+       {
+-         this.beforeOpenDialog();
+-         var _loc1_:PauseDialogUI = new PauseDialogUI(Context.app);
++         var _loc1_:PauseDialogUI = null;
++         if(this.uiPauseOpen || this.gameLoopPause)
++         {
++            return;
++         }
++         if(Context.multiplayer != null && Context.multiplayer.active)
++         {
++            this.uiPauseOpen = true;
++            this.input.freeAll();
++            Cursors.setCursor(Cursors.DEFAULT);
++            Context.multiplayer.chatInputActive = false;
++         }
++         else
++         {
++            this.beforeOpenDialog();
++         }
++         _loc1_ = new PauseDialogUI(Context.app);
+          _loc1_.showPause();
+          _loc1_.addEventListener(DialogEvent.CLOSED,this.pauseDialog_OnClosed);
+       }
+@@ -984,6 +1171,7 @@
+          var _loc2_:PauseDialogUI = param1.target as PauseDialogUI;
+          _loc2_.removeEventListener(DialogEvent.CLOSED,this.pauseDialog_OnClosed);
+          _loc2_.dispose();
++         this.uiPauseOpen = false;
+          this.afterCloseDialog();
+       }
+ 

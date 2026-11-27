@@ -1,0 +1,12 @@
+--- a/orion/ui/game/game_screens/BottomPanelUI.as
++++ b/orion/ui/game/game_screens/BottomPanelUI.as
+@@ -121,8 +121,8 @@
+       protected function saveAndQuit() : void
+       {
+          Context.game.gameLoopPause = true;
++         Context.app.showWaiting(App.SAVING_WAITING);
+          Context.app.saver.hardSavePlanet(this.onSaveViewerDataComplete,this.onSaveViewerDataError);
+-         Context.app.showWaiting(App.SAVING_WAITING);
+       }
+ 
+       protected function save() : void

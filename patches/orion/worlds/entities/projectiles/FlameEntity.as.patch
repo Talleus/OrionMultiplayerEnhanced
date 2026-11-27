@@ -1,0 +1,29 @@
+--- a/orion/worlds/entities/projectiles/FlameEntity.as
++++ b/orion/worlds/entities/projectiles/FlameEntity.as
+@@ -49,15 +49,24 @@
+ 
+       override public function collided(param1:CreatureEntity) : void
+       {
++         if(owner != null && (Context.multiplayer != null && Context.multiplayer.active ? !Context.multiplayer.canProjectileHit(owner,param1) : !owner.isEnemy(param1)))
++         {
++            return;
++         }
++         var _locWasAlive_:Boolean = param1.alive;
+          param1.trapDamage(10);
++         if(Context.multiplayer != null && owner != null)
++         {
++            Context.multiplayer.onPlayerDamagedByPlayer(param1,owner,_locWasAlive_);
++         }
+          param1.addBuff(Buff.burn,10);
+          active = false;
+       }
+ 
+       override public function update(param1:int) : void
+       {
+-         var _loc2_:Number = NaN;
+-         var _loc3_:Number = NaN;
++         var _loc2_:Number = Number(NaN);
++         var _loc3_:Number = Number(NaN);
+          var _loc4_:Boolean = false;
+          this._lifetime += 0.02;
+          if(this._lifetime >= 0.65)

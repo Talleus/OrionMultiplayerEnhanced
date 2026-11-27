@@ -1,0 +1,729 @@
+--- a/orion/worlds/World.as
++++ b/orion/worlds/World.as
+@@ -286,8 +286,8 @@
+          var _loc9_:Tile = null;
+          var _loc10_:int = 0;
+          var _loc11_:TileEntity = null;
+-         var _loc12_:Number = NaN;
+-         var _loc13_:Number = NaN;
++         var _loc12_:Number = Number(NaN);
++         var _loc13_:Number = Number(NaN);
+          var _loc14_:ItemStack = null;
+          var _loc15_:ItemEntity = null;
+          var _loc2_:int = param1.readInt();
+@@ -568,8 +568,8 @@
+          var _loc16_:ParticleEntity = null;
+          var _loc17_:Entity = null;
+          var _loc18_:ProjectileEntity = null;
+-         var _loc19_:Number = NaN;
+-         var _loc20_:Number = NaN;
++         var _loc19_:Number = Number(NaN);
++         var _loc20_:Number = Number(NaN);
+          var _loc21_:int = 0;
+          var _loc22_:CreatureEntity = null;
+          var _loc23_:Boolean = false;
+@@ -611,30 +611,40 @@
+             _loc15_ = this.creatures[_loc6_];
+             if(_loc15_ != this.player)
+             {
+-               if(_loc15_.position.x + _loc15_.width < _loc2_ || _loc15_.position.x >= _loc4_ || _loc15_.position.y + _loc15_.height < _loc3_ || _loc15_.position.y >= _loc5_)
+-               {
+-                  if(!this.removeMobsEnabled)
++               if(_loc15_ is RemotePlayerEntity)
++               {
++                  if(_loc15_.active && _loc15_.alive)
+                   {
+-                     continue;
++                     _loc15_.update(param1);
+                   }
+-                  _loc15_.active = false;
+-               }
+-               if(_loc15_.active)
+-               {
+-                  _loc15_.update(param1);
+-               }
+-               if(!_loc15_.active || !_loc15_.alive)
+-               {
+-                  _loc6_--;
+-                  if(!_loc15_.alive)
++               }
++               else if(!_loc15_.networkReplica)
++               {
++                  if(_loc15_.position.x + _loc15_.width < _loc2_ || _loc15_.position.x >= _loc4_ || _loc15_.position.y + _loc15_.height < _loc3_ || _loc15_.position.y >= _loc5_)
+                   {
+-                     _loc15_.death();
+-                     if(this.mobsDropLootEnabled && _loc15_ is MobEntity)
++                     if(!this.removeMobsEnabled)
+                      {
+-                        MobEntity(_loc15_).dropLoot();
++                        continue;
+                      }
++                     _loc15_.active = false;
+                   }
+-                  this.removeCreature(_loc15_);
++                  if(_loc15_.active)
++                  {
++                     _loc15_.update(param1);
++                  }
++                  if(!_loc15_.active || !_loc15_.alive)
++                  {
++                     _loc6_--;
++                     if(!_loc15_.alive)
++                     {
++                        _loc15_.death();
++                        if(this.mobsDropLootEnabled && _loc15_ is MobEntity)
++                        {
++                           MobEntity(_loc15_).dropLoot();
++                        }
++                     }
++                     this.removeCreature(_loc15_);
++                  }
+                }
+             }
+          }
+@@ -675,7 +685,7 @@
+             {
+                _loc18_.active = false;
+             }
+-            else if(_loc18_.needCheckCollision)
++            else if(_loc18_.needCheckCollision && !_loc18_.networkReplica)
+             {
+                _loc21_ = 0;
+                while(_loc21_ < this.creatures.length)
+@@ -845,6 +855,10 @@
+ 
+       private function updateTilesEntites() : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            return;
++         }
+          var _loc2_:TileEntity = null;
+          ++this._tileEntitiesTimer;
+          if(this._tileEntitiesTimer == int.MAX_VALUE)
+@@ -1202,8 +1216,8 @@
+       {
+          var _loc2_:int = 0;
+          var _loc3_:DecorEntity = null;
+-         var _loc4_:Number = NaN;
+-         var _loc5_:Number = NaN;
++         var _loc4_:Number = Number(NaN);
++         var _loc5_:Number = Number(NaN);
+          var _loc6_:Entity = null;
+          var _loc7_:MobEntity = null;
+          var _loc8_:MobEntity = null;
+@@ -1391,7 +1405,7 @@
+       {
+          var _loc1_:int = 0;
+          var _loc2_:int = 0;
+-         if(this._firstSpawnPlayer && (this._lastPlayerPositionInWorld.x != -1 || this._lastPlayerPositionInWorld.y != -1))
++         if(this._firstSpawnPlayer && this._lastPlayerPositionInWorld.x >= 0 && this._lastPlayerPositionInWorld.y >= 0 && this._lastPlayerPositionInWorld.x < this.borderX && this._lastPlayerPositionInWorld.y < this.borderY)
+          {
+             this._firstSpawnPlayer = false;
+             _loc1_ = this._lastPlayerPositionInWorld.x;
+@@ -1760,21 +1774,30 @@
+             _loc6_ = this.tilesY;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return false;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                _loc9_ = this.tiles[_loc7_ + _loc8_ * this.tilesX];
+                if(_loc9_.wallId == 0)
+                {
+-                  return true;
++                  break loop0;
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return false;
++         return true;
+       }
+ 
+       public function hasOpaqueWall(param1:int, param2:int) : Boolean
+@@ -1948,21 +1971,30 @@
+             _loc7_ = this.tilesY;
+          }
+          var _loc8_:int = param1;
+-         while(_loc8_ < _loc6_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc8_ >= _loc6_)
++            {
++               return false;
++            }
+             _loc9_ = param2;
+-            while(_loc9_ < _loc7_)
+-            {
++            while(true)
++            {
++               if(_loc9_ >= _loc7_)
++               {
++                  break;
++               }
+                _loc10_ = this.tiles[_loc8_ + _loc9_ * this.tilesX];
+                if(_loc10_.blockId == param5)
+                {
+-                  return true;
++                  break loop0;
+                }
+                _loc9_++;
+             }
+             _loc8_++;
+          }
+-         return false;
++         return true;
+       }
+ 
+       public function hasHardBlocks(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -1997,25 +2029,34 @@
+             _loc6_ = this.tilesY;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return false;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                _loc9_ = this.tiles[_loc7_ + _loc8_ * this.tilesX];
+                if(_loc9_.blockId != 0)
+                {
+                   _loc10_ = Block.BLOCKS[_loc9_.blockId];
+                   if(_loc10_.hard)
+                   {
+-                     return true;
++                     break loop0;
+                   }
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return false;
++         return true;
+       }
+ 
+       public function hasHardSolidBlocks(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -2050,25 +2091,34 @@
+             _loc6_ = this.tilesY;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return false;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                _loc9_ = this.tiles[_loc7_ + _loc8_ * this.tilesX];
+                if(_loc9_.blockId != 0)
+                {
+                   _loc10_ = Block.BLOCKS[_loc9_.blockId];
+                   if(_loc10_.hard && _loc10_.solid)
+                   {
+-                     return true;
++                     break loop0;
+                   }
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return false;
++         return true;
+       }
+ 
+       public function hasLiquids(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -2102,21 +2152,30 @@
+             _loc6_ = this.tilesY;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return false;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                _loc9_ = this.tiles[_loc7_ + _loc8_ * this.tilesX];
+                if(_loc9_.liquidId != 0)
+                {
+-                  return true;
++                  break loop0;
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return false;
++         return true;
+       }
+ 
+       public function hasNotUnstableBlocks(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -2151,25 +2210,34 @@
+             _loc6_ = this.tilesY;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return false;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                _loc9_ = this.tiles[_loc7_ + _loc8_ * this.tilesX];
+                if(_loc9_.blockId != 0)
+                {
+                   _loc10_ = Block.BLOCKS[_loc9_.blockId];
+                   if(!_loc10_.unstable)
+                   {
+-                     return true;
++                     break loop0;
+                   }
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return false;
++         return true;
+       }
+ 
+       public function hasHouseWalls(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -2283,20 +2351,29 @@
+             return false;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return true;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                if(this.tiles[_loc7_ + _loc8_ * this.tilesX].wallId == 0)
+                {
+-                  return false;
++                  break loop0;
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return true;
++         return false;
+       }
+ 
+       public function onlyEmptyWalls(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -2313,20 +2390,29 @@
+             return false;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return true;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                if(this.tiles[_loc7_ + _loc8_ * this.tilesX].wallId != 0)
+                {
+-                  return false;
++                  break loop0;
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return true;
++         return false;
+       }
+ 
+       public function onlyEmptyBlocks(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -2343,20 +2429,29 @@
+             return false;
+          }
+          var _loc7_:int = param1;
+-         while(_loc7_ < _loc5_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc7_ >= _loc5_)
++            {
++               return true;
++            }
+             _loc8_ = param2;
+-            while(_loc8_ < _loc6_)
+-            {
++            while(true)
++            {
++               if(_loc8_ >= _loc6_)
++               {
++                  break;
++               }
+                if(this.tiles[_loc7_ + _loc8_ * this.tilesX].blockId != 0)
+                {
+-                  return false;
++                  break loop0;
+                }
+                _loc8_++;
+             }
+             _loc7_++;
+          }
+-         return true;
++         return false;
+       }
+ 
+       public function onlyBlocks(param1:int, param2:int, param3:int, param4:int, param5:int) : Boolean
+@@ -2373,20 +2468,29 @@
+             return false;
+          }
+          var _loc8_:int = param1;
+-         while(_loc8_ < _loc6_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc8_ >= _loc6_)
++            {
++               return true;
++            }
+             _loc9_ = param2;
+-            while(_loc9_ < _loc7_)
+-            {
++            while(true)
++            {
++               if(_loc9_ >= _loc7_)
++               {
++                  break;
++               }
+                if(this.tiles[_loc8_ + _loc9_ * this.tilesX].blockId != param5)
+                {
+-                  return false;
++                  break loop0;
+                }
+                _loc9_++;
+             }
+             _loc8_++;
+          }
+-         return true;
++         return false;
+       }
+ 
+       public function onlyHardBlocks(param1:int, param2:int, param3:int, param4:int) : Boolean
+@@ -2556,21 +2660,30 @@
+             return false;
+          }
+          var _loc8_:int = param1;
+-         while(_loc8_ < _loc6_)
+-         {
++         loop0:
++         while(true)
++         {
++            if(_loc8_ >= _loc6_)
++            {
++               return true;
++            }
+             _loc9_ = param2;
+-            while(_loc9_ < _loc7_)
+-            {
++            while(true)
++            {
++               if(_loc9_ >= _loc7_)
++               {
++                  break;
++               }
+                _loc10_ = this.tiles[_loc8_ + _loc9_ * this.tilesX];
+                if(_loc10_.liquidId != param5)
+                {
+-                  return false;
++                  break loop0;
+                }
+                _loc9_++;
+             }
+             _loc8_++;
+          }
+-         return true;
++         return false;
+       }
+ 
+       public function removeBlockIfUnstable(param1:int, param2:int) : void
+@@ -2923,31 +3036,179 @@
+       public function dropTileEntityItem(param1:int, param2:int, param3:ItemStack) : void
+       {
+          this.entitiesOnGround.push(new ItemEntity(param1 * Tile.SIZE,param2 * Tile.SIZE,param3,ItemEntity.TILE_ACCELERATION_TYPE));
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.markDynamicWorldDirty();
++         }
+       }
+ 
+       public function dropTileItem(param1:int, param2:int, param3:Item, param4:int = 0) : void
+       {
+          this.entitiesOnGround.push(new ItemEntity(param1 * Tile.SIZE,param2 * Tile.SIZE,new ItemStack(param3,param4),ItemEntity.TILE_ACCELERATION_TYPE));
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.markDynamicWorldDirty();
++         }
+       }
+ 
+       public function dropProjectileItem(param1:int, param2:int, param3:Item) : void
+       {
+          this.entitiesOnGround.push(new ItemEntity(param1,param2,new ItemStack(param3),ItemEntity.DROP_ACCELERATION_TYPE));
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.markDynamicWorldDirty();
++         }
+       }
+ 
+       public function dropLoot(param1:Number, param2:Number, param3:ItemStack, param4:int = 0) : void
+       {
+          this.entitiesOnGround.push(new ItemEntity(param1,param2,param3,ItemEntity.LOOT_ACCELERATION_TYPE,param4));
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.markDynamicWorldDirty();
++         }
+       }
+ 
+       public function dropPlayerItem(param1:ItemStack) : void
+       {
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            Context.multiplayer.requestDropItem(param1);
++            return;
++         }
+          this.entitiesOnGround.push(new ItemEntity(this.player.center.x,this.player.center.y,param1,ItemEntity.DROP_ACCELERATION_TYPE,this.player.direction));
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.markDynamicWorldDirty();
++         }
+       }
+ 
+       public function dropItem(param1:Number, param2:Number, param3:Item, param4:int) : void
+       {
+          this.entitiesOnGround.push(new ItemEntity(param1,param2,new ItemStack(param3),3,param4));
++         if(Context.multiplayer != null)
++         {
++            Context.multiplayer.markDynamicWorldDirty();
++         }
++      }
++
++      public function applyNetworkTilePatch(param1:ByteArray) : void
++      {
++         var _loc2_:int = param1.readInt();
++         var _loc3_:int = 0;
++         var _loc4_:int = 0;
++         var _loc5_:int = 0;
++         var _loc6_:Tile = null;
++         while(_loc3_ < _loc2_)
++         {
++            _loc4_ = param1.readInt();
++            _loc5_ = param1.readInt();
++            if(_loc4_ < 0 || _loc5_ < 0 || _loc4_ >= this.tilesX || _loc5_ >= this.tilesY)
++            {
++               param1.readInt();
++               param1.readInt();
++            }
++            else
++            {
++               _loc6_ = this.tiles[_loc4_ + _loc5_ * this.tilesX];
++               _loc6_.data = param1.readInt();
++               _loc6_.additionalData = param1.readInt();
++            }
++            _loc3_++;
++         }
++         this._blocksChanged = true;
++      }
++
++      public function saveNetworkDynamicState(param1:ByteArray) : void
++      {
++         var _loc2_:int = 0;
++         var _loc3_:int = 0;
++         var _loc4_:ItemEntity = null;
++         param1.writeInt(this.tilesEntities.length);
++         _loc2_ = 0;
++         while(_loc2_ < this.tilesEntities.length)
++         {
++            this.tilesEntities[_loc2_].save(param1);
++            _loc2_++;
++         }
++         _loc2_ = 0;
++         while(_loc2_ < this.entitiesOnGround.length)
++         {
++            if(this.entitiesOnGround[_loc2_] is ItemEntity)
++            {
++               _loc3_++;
++            }
++            _loc2_++;
++         }
++         param1.writeInt(_loc3_);
++         _loc2_ = 0;
++         while(_loc2_ < this.entitiesOnGround.length)
++         {
++            if(this.entitiesOnGround[_loc2_] is ItemEntity)
++            {
++               _loc4_ = this.entitiesOnGround[_loc2_] as ItemEntity;
++               param1.writeDouble(_loc4_.position.x);
++               param1.writeDouble(_loc4_.position.y);
++               ItemStack.save(param1,_loc4_.itemStack);
++            }
++            _loc2_++;
++         }
++      }
++
++      public function loadNetworkDynamicState(param1:ByteArray) : void
++      {
++         var _loc2_:int = 0;
++         var _loc3_:int = 0;
++         var _loc4_:Entity = null;
++         var _loc5_:Number = Number(NaN);
++         var _loc6_:Number = Number(NaN);
++         var _loc7_:ItemStack = null;
++         var _loc8_:Vector.<TileEntity> = new Vector.<TileEntity>();
++         var _loc9_:TileEntity = null;
++         var _loc10_:TileEntity = null;
++         var _loc11_:ByteArray = null;
++         _loc2_ = param1.readInt();
++         _loc3_ = 0;
++         while(_loc3_ < _loc2_)
++         {
++            _loc9_ = TileEntity.loadAndCreateTileEntity(param1);
++            _loc10_ = this.getTileEntity(_loc9_.x,_loc9_.y);
++            if(_loc10_ != null && _loc10_.type == _loc9_.type)
++            {
++               _loc11_ = new ByteArray();
++               _loc9_.save(_loc11_);
++               _loc11_.position = 6;
++               _loc10_.load(_loc11_);
++               _loc8_.push(_loc10_);
++            }
++            else
++            {
++               _loc8_.push(_loc9_);
++            }
++            _loc3_++;
++         }
++         this.tilesEntities = _loc8_;
++         _loc3_ = int(this.entitiesOnGround.length - 1);
++         while(_loc3_ >= 0)
++         {
++            _loc4_ = this.entitiesOnGround[_loc3_];
++            if(_loc4_ is ItemEntity)
++            {
++               this.entitiesOnGround.splice(_loc3_,1);
++               _loc4_.destroy();
++            }
++            _loc3_--;
++         }
++         _loc2_ = param1.readInt();
++         _loc3_ = 0;
++         while(_loc3_ < _loc2_)
++         {
++            _loc5_ = param1.readDouble();
++            _loc6_ = param1.readDouble();
++            _loc7_ = ItemStack.load(param1);
++            this.entitiesOnGround.push(new ItemEntity(_loc5_,_loc6_,_loc7_));
++            _loc3_++;
++         }
+       }
+ 
+       public function setGameTime(param1:int, param2:int) : void
+@@ -3078,8 +3339,8 @@
+       {
+          var _loc10_:CreatureEntity = null;
+          var _loc11_:Boolean = false;
+-         var _loc12_:Number = NaN;
+-         var _loc13_:Number = NaN;
++         var _loc12_:Number = Number(NaN);
++         var _loc13_:Number = Number(NaN);
+          var _loc5_:Number = param3 * Tile.SIZE;
+          var _loc6_:Number = param1 * Tile.SIZE + Tile.SIZE * 0.5;
+          var _loc7_:Number = param2 * Tile.SIZE + Tile.SIZE * 0.5;

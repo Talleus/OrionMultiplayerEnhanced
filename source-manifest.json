@@ -1,0 +1,322 @@
+{
+  "schema": 1,
+  "exporter": "JPEXS FFDec 26.2.1, AIR mode",
+  "added": [
+    {
+      "path": "orion/multiplayer/MultiplayerClient.as",
+      "sha256": "68d8c65bf6714076d8b86011ad73b6d23f7ea4e891cb9d1fa5b3e8918c3ff8de"
+    },
+    {
+      "path": "orion/multiplayer/MultiplayerManager.as",
+      "sha256": "423fe37cdca3b61dcb711a1814e7df62a96b58a19357aad92f54f5e6e24e932d"
+    },
+    {
+      "path": "orion/multiplayer/MultiplayerProtocol.as",
+      "sha256": "067e262513090fc1554cbb1d2612cf5785a523b4d98d33d06bdfbbc29930fd6c"
+    },
+    {
+      "path": "orion/multiplayer/MultiplayerServer.as",
+      "sha256": "0f387aaa4b85cfa70f7e8151c6fdcc8880d46c73f1fb184dafed53ed6233cc24"
+    },
+    {
+      "path": "orion/multiplayer/NetworkConnection.as",
+      "sha256": "6d6aeaf5581eecba557df6858ea84f31f88868b92a668cebd182fc836458d122"
+    },
+    {
+      "path": "orion/multiplayer/NetworkPacket.as",
+      "sha256": "e493300703f80a5a5769adf1609438bb7e3f4503a7eb1c35dd446c2e7f3f756b"
+    },
+    {
+      "path": "orion/ui/lobby/MultiplayerPageUI.as",
+      "sha256": "afbbc60ffa657cd46eea57a8c4db5cf7c5f19e487e0d9e6d5bdbabd198b8f392"
+    },
+    {
+      "path": "orion/worlds/entities/RemotePlayerEntity.as",
+      "sha256": "50ffbf1ea446a0ef12527643a78b6eff7ddc1bd79fd2f9356b156c207ac287c4"
+    }
+  ],
+  "modified": [
+    {
+      "path": "App.as",
+      "patch": "patches/App.as.patch",
+      "base_sha256": "7b2cac468444c708d1659320dc22499bc79c33c59f936c78369542817d86e954",
+      "target_sha256": "9f870eb7ef5d22118adb48132f53386a4c7d618201e642d9887ff63299c79c38"
+    },
+    {
+      "path": "Context.as",
+      "patch": "patches/Context.as.patch",
+      "base_sha256": "b9f984982840b4263ce7812e69860693afc9ae06b2f2fc256e505d924b8927b2",
+      "target_sha256": "2e233110925c4b0c230c503fcfd2fb1cd42ba121b170c725e9fe18f15d16c684"
+    },
+    {
+      "path": "main/GameSaver.as",
+      "patch": "patches/main/GameSaver.as.patch",
+      "base_sha256": "ff8214fcfeb8771bdb35ba480ecb200b2efe93fdc8d91750d38e5ee721e3469e",
+      "target_sha256": "bd4fe5db45b69375b5888d3e85b767d60c9cc7422cee41eca58f6091500be69e"
+    },
+    {
+      "path": "orion/Controller.as",
+      "patch": "patches/orion/Controller.as.patch",
+      "base_sha256": "d89d0750a1b53ed427ea1c0ab1ffbb4216ad9f9c2aaa1ab41db4a8cfa75adcbe",
+      "target_sha256": "e559cb89d3160ba1a76fcc445624b74e5bdc2edfebc4c598ed2196d113af413a"
+    },
+    {
+      "path": "orion/Game.as",
+      "patch": "patches/orion/Game.as.patch",
+      "base_sha256": "84941dc7b40262fd1a42cfa483cb12694d36568a82ba630ac22ee59c46f3fa34",
+      "target_sha256": "a2f14b20fec2c0a1cf50008361f0dc8f47646537a197d546c90792eaa9d1330a"
+    },
+    {
+      "path": "orion/GameProcess.as",
+      "patch": "patches/orion/GameProcess.as.patch",
+      "base_sha256": "a957626c4569f86aed266ba6361ea760a771f48af775feca33a27963e09f00c2",
+      "target_sha256": "6d2d50886d8ba78fb97464ffad07995f487ea437c8fd69bbde6a1dbf7cdb10d0"
+    },
+    {
+      "path": "orion/Hotkeys.as",
+      "patch": "patches/orion/Hotkeys.as.patch",
+      "base_sha256": "ec9763c28b72c91a5a175a6cab13c6e4059fc9e29bbcde082fe0c3e828627ea0",
+      "target_sha256": "dfc6c0463cad7fca120baaf706d02307941610f3c4292d8ea92453df61dfd071"
+    },
+    {
+      "path": "orion/data/LocalDataProvider.as",
+      "patch": "patches/orion/data/LocalDataProvider.as.patch",
+      "base_sha256": "90ad6678b6d6cbedd6bb6e2b859f0182fc95b73411b044360519a5bad4cf8461",
+      "target_sha256": "eac686ad1e5dde756cc615f5b0e11035833503258fca54eeccc363c4d90ad8e0"
+    },
+    {
+      "path": "orion/games/SurvivalGame.as",
+      "patch": "patches/orion/games/SurvivalGame.as.patch",
+      "base_sha256": "aabff785a39e073bf059d5c95c09889647bca7727df163f520c9270f49424b26",
+      "target_sha256": "03858b0bd333852012281e7e9c68e67961eeedfdeedfde140f3091c10e19e5f7"
+    },
+    {
+      "path": "orion/games/interact/DefaultItemsInteract.as",
+      "patch": "patches/orion/games/interact/DefaultItemsInteract.as.patch",
+      "base_sha256": "a6f4a14cbd624461e6e4708d45c8088aea348280619b7c8397b1908a34a9228e",
+      "target_sha256": "b5983761d3b7882c10a061e08a45046799432ab0a66a474c4bb99fa6867f0aec"
+    },
+    {
+      "path": "orion/ui/base/BaseButtonUI.as",
+      "patch": "patches/orion/ui/base/BaseButtonUI.as.patch",
+      "base_sha256": "1317739564cd3d8c75a71ca09326e2b7e4fc8cf43442ed3dfb8fe5f09f02266a",
+      "target_sha256": "69134119f428d12686e04aa794a7d0c130c5c4f5700803aa5019967c9fb27f7e"
+    },
+    {
+      "path": "orion/ui/base/TextBoxUI.as",
+      "patch": "patches/orion/ui/base/TextBoxUI.as.patch",
+      "base_sha256": "4115763759b17d2a208be9596aacd71725ea6fe3748c484a5e065b61e924a413",
+      "target_sha256": "a36a1a269716cdeb48b12d6ca1bba1384f32de9b36e177d34dfe03152bc01c1d"
+    },
+    {
+      "path": "orion/ui/game/GameScreenUI.as",
+      "patch": "patches/orion/ui/game/GameScreenUI.as.patch",
+      "base_sha256": "2883e5dbd1a57a665d7eff9536cfec5e82f082c22d28b393142caccaa451c93c",
+      "target_sha256": "f8b7a17f0bb9af5df01c934d3eb2142764283a44a8b0cee214c77d21b74faf13"
+    },
+    {
+      "path": "orion/ui/game/PauseDialogUI.as",
+      "patch": "patches/orion/ui/game/PauseDialogUI.as.patch",
+      "base_sha256": "f4ce505bb64d9464213e420fb00c9bc98c7307f1fbb8f3ee532d26d801444142",
+      "target_sha256": "cae1a1afaf24b1b5ef5958ac08bc2db44b0cc6802493f1b9245f2bd5d2eb2c46"
+    },
+    {
+      "path": "orion/ui/game/PlayerDialogUI.as",
+      "patch": "patches/orion/ui/game/PlayerDialogUI.as.patch",
+      "base_sha256": "02a1f347c9b8f75ccc42519397148bbca985671132b742fcc275088af60791ff",
+      "target_sha256": "52be0d90053ed1851f339669b2f8672b744e91880dab13eeded371f48048469c"
+    },
+    {
+      "path": "orion/ui/game/PlayerInfoUI.as",
+      "patch": "patches/orion/ui/game/PlayerInfoUI.as.patch",
+      "base_sha256": "f210a4d7a38a368e54b6531692a2f08bd61ce659862e2039a0f48bf5389e4bd1",
+      "target_sha256": "a6ff2beade33a8ab75009ed9acde075053fe5ccc7b958f56577f4d0f08e15477"
+    },
+    {
+      "path": "orion/ui/game/game_screens/BottomPanelUI.as",
+      "patch": "patches/orion/ui/game/game_screens/BottomPanelUI.as.patch",
+      "base_sha256": "38af3cee7da9988bbb86504352060e9f5a2aeb702d675d27055cae5dd99bca7d",
+      "target_sha256": "c879511fe5e02d71dab76c98a3afd4ff86c58d084da4aa109e72af764adf6deb"
+    },
+    {
+      "path": "orion/ui/game/game_screens/FastPanelItemUI.as",
+      "patch": "patches/orion/ui/game/game_screens/FastPanelItemUI.as.patch",
+      "base_sha256": "f5ea9cecb17f241d238bd682ff36faa6d8dd782f93d8a6d9831a9982b31cf69a",
+      "target_sha256": "57614533b999b4ba20daf8db261b023546703b169566e90a2a1a6d47c88036c9"
+    },
+    {
+      "path": "orion/ui/game/game_screens/TopPanelUI.as",
+      "patch": "patches/orion/ui/game/game_screens/TopPanelUI.as.patch",
+      "base_sha256": "4601ff20c812c19243b512165176b894ae78b3fbabc19675a2b55db948919442",
+      "target_sha256": "33f875071908777b3c4c5d828585da04a3cbd497c5ae42f32925ee958ad69cd4"
+    },
+    {
+      "path": "orion/ui/game/player_dialog/BurnerPanelUI.as",
+      "patch": "patches/orion/ui/game/player_dialog/BurnerPanelUI.as.patch",
+      "base_sha256": "f4de1a747c3e3f079e8d1f19a2da09fee695ef8d6a4cfe889910f0bc0e52ead4",
+      "target_sha256": "eb452d87f9ecff49225415d48f386d3da8b614f058c7c2b16a11abb91864b41f"
+    },
+    {
+      "path": "orion/ui/game/player_dialog/ChestPanelUI.as",
+      "patch": "patches/orion/ui/game/player_dialog/ChestPanelUI.as.patch",
+      "base_sha256": "aaba2b1a53349cddbee8b30d188daec67d9c8af7e82fd630e8095ada6ddb6c58",
+      "target_sha256": "d7725247194f45a0ae0c01b223568c3fa4fd0ea0ad4a43bd9bd4cb8db811c0d5"
+    },
+    {
+      "path": "orion/ui/game/player_dialog/CraftingPanelUI.as",
+      "patch": "patches/orion/ui/game/player_dialog/CraftingPanelUI.as.patch",
+      "base_sha256": "d56f45647861f20267f95c55922cf0b9e49774888c838ae5932fbd34ca58fe39",
+      "target_sha256": "7319c13aef74ec6228f7dcf97a376871cd195ee5f49ada3715a317d96a5b7de7"
+    },
+    {
+      "path": "orion/ui/game/player_dialog/FurnacePanelUI.as",
+      "patch": "patches/orion/ui/game/player_dialog/FurnacePanelUI.as.patch",
+      "base_sha256": "60bd53d447609fc93236bcfc29be7f78f3cf1ef1560008fa87caff4ee62140b0",
+      "target_sha256": "445bc4fdbb1ce7080ed74bb6a2a81a850f6a0104f349329dd23c77cdf9f284f7"
+    },
+    {
+      "path": "orion/ui/game/player_dialog/InventoryPanelUI.as",
+      "patch": "patches/orion/ui/game/player_dialog/InventoryPanelUI.as.patch",
+      "base_sha256": "3c5e6b3ccc70064b9f8bb71fee3dab96e3f9977abaf215d9875620e43f3ab564",
+      "target_sha256": "e12fd685a553acdba86264140945749e92561a0aa8905412111572aaf04ca4a7"
+    },
+    {
+      "path": "orion/ui/game/player_dialog/RobotPanelUI.as",
+      "patch": "patches/orion/ui/game/player_dialog/RobotPanelUI.as.patch",
+      "base_sha256": "1778c5875043978a9a78c2456729610fc991302b4cb0c6af144928d9132bd769",
+      "target_sha256": "a0466ee063c385440599843d5e453caf58b60410a0766cafca3bff5da092edbb"
+    },
+    {
+      "path": "orion/ui/game/player_dialog/SmallChestPanelUI.as",
+      "patch": "patches/orion/ui/game/player_dialog/SmallChestPanelUI.as.patch",
+      "base_sha256": "7229bd2d6ce109144abb5f75e05fc955c7ced23ec5bc1e960cfef9a7d99426b0",
+      "target_sha256": "ac0a5a920302f77a8b9aa08511f619a53a0b81575ed533ee9a7aba14b24dd5fc"
+    },
+    {
+      "path": "orion/ui/general/CharacterDrawing.as",
+      "patch": "patches/orion/ui/general/CharacterDrawing.as.patch",
+      "base_sha256": "bc14138d8aa65b80dc4cdf52a007deb46798edd893b1bb1b8db9c4115ac8e111",
+      "target_sha256": "83275862e34ad69016c11b92e5fadf3989d5fda3dd9eae4552d02b38b590da00"
+    },
+    {
+      "path": "orion/ui/general/ConfirmDialogUI.as",
+      "patch": "patches/orion/ui/general/ConfirmDialogUI.as.patch",
+      "base_sha256": "ca0d8d102d7c33cc59c6c64ed77efe68c08343e3f3f20371a442fad023bad5eb",
+      "target_sha256": "cd9cc0e642dcfa627e955346278288efe3c831e41b9a54c9e9f9089278ba0053"
+    },
+    {
+      "path": "orion/ui/lobby/CharacterPageUI.as",
+      "patch": "patches/orion/ui/lobby/CharacterPageUI.as.patch",
+      "base_sha256": "d09a5822ca479df8199d6c09aa29567e0150c99d58db43689a331bed6f3c1f1b",
+      "target_sha256": "6068568bea892c6d0c8216ff28ffb7fea29820969e992f35a84789b88066d260"
+    },
+    {
+      "path": "orion/ui/lobby/HomePageUI.as",
+      "patch": "patches/orion/ui/lobby/HomePageUI.as.patch",
+      "base_sha256": "50fda90bb2a65342635ca9b7fd8087282f2107b0e8e8b12dbd979946c022d65d",
+      "target_sha256": "5e615dc9ba42aa1080222ec80a0993a767a28f3f9c1cc33e58c1943e357cf044"
+    },
+    {
+      "path": "orion/ui/lobby/LobbyScreenUI.as",
+      "patch": "patches/orion/ui/lobby/LobbyScreenUI.as.patch",
+      "base_sha256": "a4949eee839d75e9976f224106b6e9afa9635c9da1fb5e2410ee8b2868114214",
+      "target_sha256": "bfa977183d7c512583cdcfc6012ea82c2b069ba3406a98b313c34281825b0bb0"
+    },
+    {
+      "path": "orion/ui/lobby/PlayPageUI.as",
+      "patch": "patches/orion/ui/lobby/PlayPageUI.as.patch",
+      "base_sha256": "083eb3117d29768c167993a7d2679808dc3c92b02e292b0413b0f6bc4bb8af7d",
+      "target_sha256": "ca3f1d98551d7734b23291a824f0cf47fab4f737d5d5237f1dbb91f37b4bac0b"
+    },
+    {
+      "path": "orion/worlds/World.as",
+      "patch": "patches/orion/worlds/World.as.patch",
+      "base_sha256": "f5815f07e129e849d473e7cd05fc58f7dc2acfd6c9fe51acf880334c4549a830",
+      "target_sha256": "4b09f6c0c6f875f6be61fedf40bddb72d05adf193ed50c7becb3d02b146f9f47"
+    },
+    {
+      "path": "orion/worlds/earth/atmo_effects/GlowwormAtmoEffect.as",
+      "patch": "patches/orion/worlds/earth/atmo_effects/GlowwormAtmoEffect.as.patch",
+      "base_sha256": "f3357a39736441c5e092f87e28a2a475b00dbabf0604a0cc40c877f2037a96fd",
+      "target_sha256": "eddda875c01a4f085497b26314458f0c1b9d125ec77a3e0040d1328744d84f92"
+    },
+    {
+      "path": "orion/worlds/entities/CharacterEntity.as",
+      "patch": "patches/orion/worlds/entities/CharacterEntity.as.patch",
+      "base_sha256": "1195f4b7b6632b61ccfcc5236103d31865bfb2fdb12d90c8d74743a9c208364c",
+      "target_sha256": "4da8be00f8896e8c8bdd171d0dac14df3f0963c4d263d491e7b6226885974bbf"
+    },
+    {
+      "path": "orion/worlds/entities/CreatureEntity.as",
+      "patch": "patches/orion/worlds/entities/CreatureEntity.as.patch",
+      "base_sha256": "46a78761f75cee065c8f05a5ed15c9310334f85c11f555f932faa06ee43e4839",
+      "target_sha256": "a9d1580acdca20c102846a5658c7fc00ce7468034ffe0f8ddcd33071c91257b0"
+    },
+    {
+      "path": "orion/worlds/entities/ItemEntity.as",
+      "patch": "patches/orion/worlds/entities/ItemEntity.as.patch",
+      "base_sha256": "2d2ccbc9d915182c02d61a40e8aa7e5b6ac114fbc7c07c8de47cf6c6ba2a3dfa",
+      "target_sha256": "e74a984991c52d319be2515e9ab1866ec5dfd11a521134e33785c9b85b651471"
+    },
+    {
+      "path": "orion/worlds/entities/PlayerEntity.as",
+      "patch": "patches/orion/worlds/entities/PlayerEntity.as.patch",
+      "base_sha256": "e7a6c63893a40350418fe5c6e5b28f949f4fd6292a38a0b86481c74e8b7111e5",
+      "target_sha256": "c588a8e7d45465c8373c4d1af6839296c1d235b1154190e535c6638eadefbc16"
+    },
+    {
+      "path": "orion/worlds/entities/ProjectileEntity.as",
+      "patch": "patches/orion/worlds/entities/ProjectileEntity.as.patch",
+      "base_sha256": "5a89c333f923a5dc0acc3659a051c8162dc100c3b9a8d9873fce44b42b5a9e80",
+      "target_sha256": "5dee66c30254c8d21936ec8477bebb8c4cab37420b6ce64440e15a93902fad0e"
+    },
+    {
+      "path": "orion/worlds/entities/projectiles/ArrowEntity.as",
+      "patch": "patches/orion/worlds/entities/projectiles/ArrowEntity.as.patch",
+      "base_sha256": "5df2ed1e2cd70ed903f57ae5a1c6a44c48981393033fad10969c3b1d284b8474",
+      "target_sha256": "5f4293efc201684327dea18a51ea53d969714b392e7f7224633b8031b2574ca0"
+    },
+    {
+      "path": "orion/worlds/entities/projectiles/FireballEntity.as",
+      "patch": "patches/orion/worlds/entities/projectiles/FireballEntity.as.patch",
+      "base_sha256": "4689da287d85d512826e9d7061b299c886a125385cab64fed60c7f3b2223c07a",
+      "target_sha256": "cfd610134dcf66ae62f59f2d6b4e1f8d6c1c20f95199c7efdda3fac27cabc502"
+    },
+    {
+      "path": "orion/worlds/entities/projectiles/FlameEntity.as",
+      "patch": "patches/orion/worlds/entities/projectiles/FlameEntity.as.patch",
+      "base_sha256": "b61f31bf55aa7204aa4ed1587eba23e79c65f91aad35af7d349ddf655660dd08",
+      "target_sha256": "640613741e76e0b8b5775292de514fa51f651aef155a0c5ce41a697efce1c518"
+    },
+    {
+      "path": "orion/worlds/entities/projectiles/PoisonballEntity.as",
+      "patch": "patches/orion/worlds/entities/projectiles/PoisonballEntity.as.patch",
+      "base_sha256": "61956080a9ff8736c5ba6c04097bb39a4359b4200d686e47c9fede3be831ce55",
+      "target_sha256": "6938d179b7e0e2939a373093ec28a846b4a4c976d439e0f3075d0b26640d0ba1"
+    },
+    {
+      "path": "orion/worlds/entities/projectiles/PotionFrostEntity.as",
+      "patch": "patches/orion/worlds/entities/projectiles/PotionFrostEntity.as.patch",
+      "base_sha256": "cd5ec86b108b5c264f603afe44bf09cb17562c89173a107c38df2a2124393706",
+      "target_sha256": "e41ebd0ffec2308e001c34dcb3f93798925403fe6379bfc496b566cb2bf52ee7"
+    },
+    {
+      "path": "orion/worlds/entities/projectiles/WebEntity.as",
+      "patch": "patches/orion/worlds/entities/projectiles/WebEntity.as.patch",
+      "base_sha256": "4e48059bd2090b077011a0aacc55416c1efdf199426a5950cf56a4348f959b21",
+      "target_sha256": "1e51fff6ecc1199e93b587db89f4b9fb4a76b68a70b903bb621a22bfd4a9da67"
+    },
+    {
+      "path": "orion/worlds/items/consumable/ChangeGenderPotionItem.as",
+      "patch": "patches/orion/worlds/items/consumable/ChangeGenderPotionItem.as.patch",
+      "base_sha256": "aa0fe8136adc4c042b28ed4dd56145ca02b3b43a99b01a16c599496f55658e62",
+      "target_sha256": "3631bf52766404ff5d6d8fd027e2ed8afd2f34f0a1807c60edb30a334a5b23d0"
+    },
+    {
+      "path": "orion/worlds/items/consumable/ChangePositionPotionItem.as",
+      "patch": "patches/orion/worlds/items/consumable/ChangePositionPotionItem.as.patch",
+      "base_sha256": "6de96c4e8b4a3c2df15df980cce5a78d8fb8f1faa133465e5eb0222dff7de614",
+      "target_sha256": "879fe4d1d7f03fa67279919e0730dbdc24bc4a53cb0f78781aa40622a3bb342a"
+    }
+  ]
+}

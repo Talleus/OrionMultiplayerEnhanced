@@ -1,0 +1,36 @@
+--- a/orion/ui/general/CharacterDrawing.as
++++ b/orion/ui/general/CharacterDrawing.as
+@@ -71,13 +71,14 @@
+                _loc1_ = this.getHairImage();
+             }
+          }
++         var _hIdx_:int = Math.max(0,Math.min(4,this.headIndex));
+          if(this.gender)
+          {
+-            _loc4_ = Images.MALE_HEADS[this.headIndex];
+-         }
+-         else
+-         {
+-            _loc4_ = Images.FEMALE_HEADS[this.headIndex];
++            _loc4_ = Images.MALE_HEADS[_hIdx_];
++         }
++         else
++         {
++            _loc4_ = Images.FEMALE_HEADS[_hIdx_];
+          }
+          var _loc7_:BodyArmorItem = this.getBodyArmorItem();
+          if(_loc7_ == null)
+@@ -147,7 +148,12 @@
+             return null;
+          }
+          var _loc1_:Vector.<BitmapData> = PlayerImages.getHairsImages(this.gender,this.hairIndex);
+-         return _loc1_[this.hairColorIndex];
++         if(_loc1_ == null || _loc1_.length == 0)
++         {
++            return null;
++         }
++         var _cIdx_:int = Math.max(0,Math.min(_loc1_.length - 1,this.hairColorIndex));
++         return _loc1_[_cIdx_];
+       }
+ 
+       private function getHeadArmorItem() : HeadArmorItem

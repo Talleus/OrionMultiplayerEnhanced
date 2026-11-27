@@ -1,0 +1,111 @@
+--- a/orion/ui/game/PlayerInfoUI.as
++++ b/orion/ui/game/PlayerInfoUI.as
+@@ -4,6 +4,7 @@
+    import flash.display.*;
+    import flash.events.*;
+    import flash.filters.*;
++   import flash.utils.*;
+    import orion.*;
+    import orion.inventories.*;
+    import orion.ui.*;
+@@ -60,12 +61,29 @@
+       {
+          super.init();
+          this._oldLanguage = Context.app._choosedLanguage;
+-         this._nameLabel.setText(Text.getValue("you_hero"));
++         this.updateCharacterName();
+          this._player = Context.game.player;
+          this._inventory = this._player.inventory;
+          this._playerIcon = CharacterIcon.create(this._player);
+       }
+ 
++      private function updateCharacterName() : void
++      {
++         var _loc1_:String = null;
++         if(Context.savedCustomize != null && Context.savedCustomize.name != null && Context.savedCustomize.name.length > 0)
++         {
++            _loc1_ = String(Context.savedCustomize.name);
++         }
++         if(_loc1_ != null && _loc1_.length > 0)
++         {
++            this._nameLabel.setText(_loc1_);
++         }
++         else
++         {
++            this._nameLabel.setText(Text.getValue("you_hero"));
++         }
++      }
++
+       override protected function addChildren() : void
+       {
+          super.addChildren();
+@@ -75,7 +93,7 @@
+             this._nameLabel.setSystemFont("Verdana",14);
+          }
+          this._levelLabel = new LabelUI(this,25,26).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setFontBold(true).setSystemFont("Arial",10,16777215).addFilter(UIStyle.BLACK_STROKE_FILTER).setSize(20,20) as LabelUI;
+-         this._healthLabel = new LabelUI(this,2,45).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setVerticalAlign(LabelUI.TOP_ALIGN).setSystemFont("Verdana",10,16777215).setVisible(false).addFilter(UIStyle.BLACK_STROKE_FILTER).setSize(145,14) as LabelUI;
++         this._healthLabel = new LabelUI(this,2,45).setAutoSize(false).setAlign(LabelUI.CENTER_ALIGN).setVerticalAlign(LabelUI.TOP_ALIGN).setSystemFont("Verdana",10,16777215).setVisible(true).addFilter(UIStyle.BLACK_STROKE_FILTER).setSize(146,18) as LabelUI;
+       }
+ 
+       override protected function addEventListeners() : void
+@@ -214,9 +232,13 @@
+          }
+          if(this._oldLanguage != Context.app._choosedLanguage)
+          {
+-            this._nameLabel.setText(Text.getValue("you_hero"));
++            this.updateCharacterName();
+             this._oldLanguage = Context.app._choosedLanguage;
+          }
++         if(this._maxHealth > 0 && this._health / this._maxHealth <= 0.25)
++         {
++            _loc2_ = true;
++         }
+          if(_loc2_)
+          {
+             this.draw();
+@@ -225,19 +247,34 @@
+ 
+       override protected function draw() : void
+       {
+-         var _loc2_:Number = NaN;
++         var _loc1_:Number;
++         var _pulseAlpha:Number;
++         var _loc2_:Number = Number(NaN);
+          clearGraphics();
+          if(this._maxHealth == 0)
+          {
+             return;
+          }
+          drawImage(Images.AVATAR_HP_BACKGROUND,2,47,true);
+-         var _loc1_:Number = this._health / this._maxHealth;
++         _loc1_ = this._health / this._maxHealth;
+          if(_loc1_ < 0)
+          {
+             _loc1_ = 0;
+          }
+          drawImageEx(Images.AVATAR_HP_BAR,4,47,0,0,Images.AVATAR_HP_BAR.width * _loc1_,Images.AVATAR_HP_BAR.height);
++         if(_loc1_ <= 0.25)
++         {
++            try
++            {
++               _pulseAlpha = 0.35 + 0.25 * Math.sin(getTimer() * 0.008);
++               graphics.beginFill(16711731,_pulseAlpha);
++               graphics.drawRoundRect(2,46,Images.AVATAR_HP_BACKGROUND.width,Images.AVATAR_HP_BACKGROUND.height,4,4);
++               graphics.endFill();
++            }
++            catch(pulseErr:Error)
++            {
++            }
++         }
+          drawImage(Images.AVATAR_BACKGROUND_BLUE,3,3);
+          drawImage(this._playerIcon,4,-16);
+          drawImage(Images.AVATAR_INFO_FRAME_IRON,0,0,true);
+@@ -258,7 +295,7 @@
+       private function onMouseOut(param1:MouseEvent) : void
+       {
+          removeEventListener(MouseEvent.MOUSE_OUT,this.onMouseOut);
+-         this._healthLabel.visible = false;
++         this._healthLabel.visible = true;
+       }
+    }
+ }

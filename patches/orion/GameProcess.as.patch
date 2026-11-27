@@ -1,0 +1,34 @@
+--- a/orion/GameProcess.as
++++ b/orion/GameProcess.as
+@@ -86,9 +86,16 @@
+ 
+       override protected function fixedUpdate(param1:int) : void
+       {
+-         this.game.preUpdate(param1);
+-         this.game.update(param1);
+-         this.game.postUpdate(param1);
++         if(this.game != null && this.game.runCompleted)
++         {
++            this.game.preUpdate(param1);
++            this.game.update(param1);
++            this.game.postUpdate(param1);
++            if(Context.multiplayer != null && Context.multiplayer.active)
++            {
++               Context.multiplayer.fixedUpdate(param1);
++            }
++         }
+       }
+ 
+       override protected function update(param1:int) : void
+@@ -101,7 +108,10 @@
+ 
+       override protected function render(param1:SpriteBatch) : void
+       {
+-         this.game.render(param1);
++         if(this.game != null && this.game.runCompleted)
++         {
++            this.game.render(param1);
++         }
+       }
+ 
+       override public function runGameLoop() : void

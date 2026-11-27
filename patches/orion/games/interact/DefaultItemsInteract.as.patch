@@ -1,0 +1,43 @@
+--- a/orion/games/interact/DefaultItemsInteract.as
++++ b/orion/games/interact/DefaultItemsInteract.as
+@@ -80,7 +80,7 @@
+ 
+       override protected function interactChest(param1:Boolean, param2:InteractData) : Boolean
+       {
+-         game.showInventory_Chest(ChestTileEntity(param2.tileEntity).items);
++         game.showInventory_Chest(ChestTileEntity(param2.tileEntity));
+          return true;
+       }
+ 
+@@ -118,6 +118,22 @@
+       {
+          var _loc4_:Boolean = false;
+          var _loc3_:TreasureChestTileEntity = param2.tileEntity as TreasureChestTileEntity;
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            if(_loc3_.isOpen())
++            {
++               game.showInventory_TreasureChest(_loc3_);
++               return true;
++            }
++            if(game.inventory.contains(Item.TREASURE_KEY))
++            {
++               Context.multiplayer.requestTreasureChestOpen(param2.x,param2.y);
++               return true;
++            }
++            game.showPlayerTooltip(Text.getValue("hint_chest_lock"));
++            sounds.playEffect(Sounds.CHEST_LOCK,param2.x * Tile.SIZE + Tile.HALF_SIZE,param2.y * Tile.SIZE + Tile.HALF_SIZE);
++            return false;
++         }
+          if(!_loc3_.isOpen())
+          {
+             _loc4_ = this.tryOpenTreasureChest(param2.x,param2.y,_loc3_);
+@@ -128,7 +144,7 @@
+          }
+          if(_loc3_.isOpen())
+          {
+-            game.showInventory_TreasureChest(_loc3_.items);
++            game.showInventory_TreasureChest(_loc3_);
+             return true;
+          }
+          return false;

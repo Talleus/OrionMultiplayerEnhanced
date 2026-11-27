@@ -1,0 +1,26 @@
+--- a/orion/ui/game/player_dialog/CraftingPanelUI.as
++++ b/orion/ui/game/player_dialog/CraftingPanelUI.as
+@@ -543,6 +543,11 @@
+             this._showHintSignal.dispatch(Text.getValue("ui_hint_not_enough_space"));
+             return;
+          }
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            Context.multiplayer.requestCraft(param1.category,param1.requiredUtility,this._utility,param1.craftedItem.item.id,param1.craftedItem.count);
++            return;
++         }
+          var _loc2_:ItemStack = Crafting.craftItem(param1.ingredients,param1.craftedItem);
+          this._inventory.add(_loc2_);
+          this.updateRecipeList();
+@@ -636,6 +641,11 @@
+          var _loc7_:RepairListData = null;
+          var _loc2_:RepairData = param1.repairData;
+          this._currentRepairData = _loc2_;
++         if(Context.multiplayer != null && Context.multiplayer.isClient)
++         {
++            Context.multiplayer.requestRepair(_loc2_.repairedItem,_loc2_.materialItem);
++            return;
++         }
+          if(!this._inventory.contains(_loc2_.materialItem))
+          {
+             this._showHintSignal.dispatch(Text.getValue("ui_hint_required_for_repairs",_loc2_.materialItem.name));

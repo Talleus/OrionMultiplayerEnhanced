@@ -1,0 +1,34 @@
+--- a/orion/worlds/entities/projectiles/ArrowEntity.as
++++ b/orion/worlds/entities/projectiles/ArrowEntity.as
+@@ -51,8 +51,8 @@
+ 
+       override public function update(param1:int) : void
+       {
+-         var _loc2_:Number = NaN;
+-         var _loc3_:Number = NaN;
++         var _loc2_:Number = Number(NaN);
++         var _loc3_:Number = Number(NaN);
+          var _loc4_:Tile = null;
+          var _loc5_:Block = null;
+          var _loc6_:Boolean = false;
+@@ -118,7 +118,10 @@
+             if(this.stuck)
+             {
+                active = false;
+-               world.dropProjectileItem(center.x,center.y,this.arrowItem);
++               if(!networkReplica)
++               {
++                  world.dropProjectileItem(center.x,center.y,this.arrowItem);
++               }
+                return;
+             }
+             _loc6_ = this._underliquid;
+@@ -148,7 +151,7 @@
+ 
+       override public function collided(param1:CreatureEntity) : void
+       {
+-         if(owner != null && !owner.isEnemy(param1))
++         if(owner != null && (Context.multiplayer != null && Context.multiplayer.active ? !Context.multiplayer.canProjectileHit(owner,param1) : !owner.isEnemy(param1)))
+          {
+             return;
+          }

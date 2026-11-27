@@ -1,0 +1,40 @@
+--- a/orion/ui/game/PlayerDialogUI.as
++++ b/orion/ui/game/PlayerDialogUI.as
+@@ -165,22 +165,29 @@
+          show();
+       }
+ 
+-      public function showChestPanel(param1:Vector.<ItemStack>) : void
++      public function showChestPanel(param1:BaseChestTileEntity) : void
+       {
+          var _loc2_:ChestPanelUI = new ChestPanelUI(this._backgroundPanel,327,34);
+          _loc2_.itemsChangedSignal.add(this.onItemsChanged);
+-         _loc2_.setChestItems(param1);
++         _loc2_.setChest(param1);
+          this._backgroundPanel.setChildIndex(_loc2_,0);
+          this._secondCaptionLabel.text = Text.getValue("ui_lbl_chest");
+          show();
+       }
+ 
+-      public function showSmallChestPanel(param1:String, param2:Vector.<ItemStack>) : void
+-      {
+-         var _loc3_:SmallChestPanelUI = new SmallChestPanelUI(this._backgroundPanel,327,34);
+-         _loc3_.itemsChangedSignal.add(this.onItemsChanged);
+-         _loc3_.setChestItems(param2);
+-         this._backgroundPanel.setChildIndex(_loc3_,0);
++      public function showSmallChestPanel(param1:String, param2:Vector.<ItemStack>, param3:BaseChestTileEntity = null) : void
++      {
++         var _loc4_:SmallChestPanelUI = new SmallChestPanelUI(this._backgroundPanel,327,34);
++         _loc4_.itemsChangedSignal.add(this.onItemsChanged);
++         if(param3 != null)
++         {
++            _loc4_.setChest(param3);
++         }
++         else
++         {
++            _loc4_.setChestItems(param2);
++         }
++         this._backgroundPanel.setChildIndex(_loc4_,0);
+          this._secondCaptionLabel.text = param1;
+          show();
+       }

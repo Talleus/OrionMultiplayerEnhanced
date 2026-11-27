@@ -1,0 +1,25 @@
+# Original game and generated artifacts
+*.swf
+*.exe
+*.dll
+*.ane
+*.air
+*.sol
+*.log
+*.pyc
+__pycache__/
+.venv/
+.env
+.env.*
+!.env.example
+build/
+dist/
+local/
+verify_export*/
+scripts_work/
+# Personal credentials
+*.pem
+*.key
+*.pfx
+*.spec
+.pytest_cache/

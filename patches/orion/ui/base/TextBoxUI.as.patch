@@ -1,0 +1,260 @@
+--- a/orion/ui/base/TextBoxUI.as
++++ b/orion/ui/base/TextBoxUI.as
+@@ -1,10 +1,13 @@
+ package orion.ui.base
+ {
++   import flash.desktop.Clipboard;
++   import flash.desktop.ClipboardFormats;
+    import flash.display.DisplayObjectContainer;
+    import flash.events.Event;
+    import flash.events.KeyboardEvent;
+    import flash.events.TextEvent;
+    import flash.text.TextFieldType;
++   import flash.text.TextFormat;
+ 
+    public class TextBoxUI extends TextUI
+    {
+@@ -31,6 +34,8 @@
+ 
+       protected var _selectable:Boolean = true;
+ 
++      public var limitByWidth:Boolean = false;
++
+       public function TextBoxUI(param1:DisplayObjectContainer, param2:int = 0, param3:int = 0)
+       {
+          super(param1,param2,param3);
+@@ -104,6 +109,17 @@
+       public function set selectable(param1:Boolean) : void
+       {
+          this.setSelectable(param1);
++      }
++
++      override protected function addChildren() : void
++      {
++         super.addChildren();
++         _textField.type = TextFieldType.INPUT;
++         _textField.multiline = this._multiline;
++         _textField.selectable = this._selectable;
++         _textField.maxChars = this._maxLength;
++         _textField.wordWrap = this._multiline;
++         this.setSize(100,20);
+       }
+ 
+       override protected function addEventListeners() : void
+@@ -111,42 +127,55 @@
+          super.addEventListeners();
+          _textField.addEventListener(Event.CHANGE,this._textField_onChange);
+          _textField.addEventListener(TextEvent.TEXT_INPUT,this._textField_onTextInput);
+-         _textField.addEventListener(KeyboardEvent.KEY_DOWN,this.onKey);
+-         _textField.addEventListener(KeyboardEvent.KEY_UP,this.onKey);
++         _textField.addEventListener(KeyboardEvent.KEY_DOWN,this._textField_onKeyDown);
++         addEventListener(KeyboardEvent.KEY_DOWN,this.onKey);
+       }
+ 
+       override protected function removeEventListeners() : void
+       {
+          super.removeEventListeners();
+          _textField.removeEventListener(Event.CHANGE,this._textField_onChange);
+-         _textField.removeEventListener(KeyboardEvent.KEY_DOWN,this.onKey);
+-         _textField.removeEventListener(KeyboardEvent.KEY_UP,this.onKey);
++         _textField.removeEventListener(TextEvent.TEXT_INPUT,this._textField_onTextInput);
++         _textField.removeEventListener(KeyboardEvent.KEY_DOWN,this._textField_onKeyDown);
++         removeEventListener(KeyboardEvent.KEY_DOWN,this.onKey);
+       }
+ 
+       override protected function update() : void
+       {
+-         _textField.defaultTextFormat = _textFormat;
+-         _textField.autoSize = this.align;
+-         _textField.maxChars = this._maxLength;
+-         if(this._maxLength != 0 && _text.length > this._maxLength)
+-         {
+-            _text = _text.substr(0,this._maxLength);
+-         }
+-         if(_html)
+-         {
+-            _textField.htmlText = _text;
+-         }
+-         else
+-         {
+-            _textField.text = _text;
+-         }
+-         _textField.x = this._margin;
+-         _textField.y = this._margin;
+-         _textField.width = _width - this._margin * 2;
+-         _textField.height = _height - this._margin * 2;
+-         _textField.wordWrap = this._multiline;
+-         _textField.multiline = this._multiline;
+-         _textField.multiline = true;
++         if(this._align == NONE_ALIGN)
++         {
++            _textField.x = this._margin + 4;
++            _textField.width = _width - this._margin * 2 - 8;
++            _textField.height = _height - this._margin * 2;
++            var _lh_:Number = _textField.numLines > 0 ? _textField.getLineMetrics(0).height : _height;
++            _textField.y = Math.max(this._margin,(_height - _lh_) * 0.5);
++         }
++         else if(this._align == LEFT_ALIGN)
++         {
++            _textField.x = this._margin;
++            _textField.y = (_height - _textField.textHeight) * 0.5;
++            _textField.width = _width - this._margin * 2;
++            _textField.height = _height - this._margin * 2;
++         }
++         else if(this._align == RIGHT_ALIGN)
++         {
++            _textField.x = _width - _textField.textWidth - this._margin;
++            _textField.y = (_height - _textField.textHeight) * 0.5;
++            _textField.width = _textField.textWidth;
++            _textField.height = _textField.textHeight;
++         }
++         else if(this._align == CENTER_ALIGN)
++         {
++            _textField.x = this._margin + 4;
++            _textField.width = _width - this._margin * 2 - 8;
++            _textField.height = _height - this._margin * 2;
++            var _fmt_:TextFormat = _textField.defaultTextFormat;
++            _fmt_.align = "center";
++            _textField.defaultTextFormat = _fmt_;
++            _textField.setTextFormat(_fmt_);
++            var _lh2_:Number = _textField.numLines > 0 ? _textField.getLineMetrics(0).height : _height;
++            _textField.y = Math.max(this._margin,(_height - _lh2_) * 0.5);
++         }
+          if(this._editable)
+          {
+             mouseEnabled = true;
+@@ -154,6 +183,21 @@
+             _textField.mouseEnabled = true;
+             _textField.selectable = true;
+             _textField.type = TextFieldType.INPUT;
++            _textField.border = false;
++            _textField.background = false;
++            this.graphics.clear();
++            this.graphics.beginFill(1054752,0.95);
++            this.graphics.lineStyle(2,1802908,1,true);
++            var cr:Number = Math.min(12,_height * 0.4);
++            this.graphics.drawRoundRect(0,0,_width,_height,cr * 2,cr * 2);
++            this.graphics.endFill();
++            this.graphics.lineStyle(1,2470358,1,true);
++            this.graphics.drawRoundRect(1,1,_width - 2,_height - 2,(cr - 1) * 2,(cr - 1) * 2);
++            _textField.textColor = 16777215;
++            var fmt2:TextFormat = _textField.defaultTextFormat;
++            fmt2.color = 16777215;
++            _textField.defaultTextFormat = fmt2;
++            _textField.setTextFormat(fmt2);
+          }
+          else
+          {
+@@ -162,13 +206,18 @@
+             _textField.mouseEnabled = this._selectable;
+             _textField.selectable = this._selectable;
+             _textField.type = TextFieldType.DYNAMIC;
++            _textField.border = false;
++            _textField.background = false;
+          }
+          super.update();
+       }
+ 
+       public function focus() : void
+       {
+-         stage.focus = _textField;
++         if(stage != null)
++         {
++            stage.focus = _textField;
++         }
+       }
+ 
+       public function selectAll() : void
+@@ -234,15 +283,91 @@
+ 
+       protected function _textField_onChange(param1:Event) : void
+       {
++         var str:String = _textField.text;
++         var clean:String = str.replace(/[\x00-\x1F\x7F]/g,"");
++         if(str != clean)
++         {
++            var caret:int = _textField.caretIndex;
++            _textField.text = clean;
++            _textField.setSelection(caret - (str.length - clean.length),caret - (str.length - clean.length));
++         }
+          _text = _textField.text;
+          dispatchEvent(param1);
+       }
+ 
+       private function _textField_onTextInput(param1:TextEvent) : void
+       {
+-         if(!this._multiline && param1.text == "\n")
++         if(!this._multiline && (param1.text == "\n" || param1.text == "\r"))
+          {
+             param1.preventDefault();
++            return;
++         }
++         if(this.limitByWidth && _textField.textWidth > _textField.width - 24)
++         {
++            param1.preventDefault();
++            return;
++         }
++         if(param1.text != null && param1.text.length > 0)
++         {
++            var c:int = param1.text.charCodeAt(0);
++            if(c < 32 && c != 10 && c != 13 && c != 9)
++            {
++               param1.preventDefault();
++               return;
++            }
++         }
++         if(this._editable && !this._multiline)
++         {
++            var innerW:Number = _width - this._margin * 2 - 8;
++            if(_textField.textWidth >= innerW - 2)
++            {
++               param1.preventDefault();
++            }
++         }
++      }
++
++      private function _textField_onKeyDown(param1:KeyboardEvent) : void
++      {
++         var clipText:String;
++         var startIdx:int;
++         var endIdx:int;
++         var curText:String;
++         var newText:String;
++         var caretPos:int;
++         if(param1.ctrlKey && (param1.keyCode == 86 || param1.keyCode == 118))
++         {
++            param1.preventDefault();
++            try
++            {
++               if(Clipboard.generalClipboard.hasFormat(ClipboardFormats.TEXT_FORMAT))
++               {
++                  clipText = String(Clipboard.generalClipboard.getData(ClipboardFormats.TEXT_FORMAT));
++                  if(clipText != null)
++                  {
++                     clipText = clipText.replace(/[\r\n\t\x00-\x1F\x7F]/g,"");
++                     if(this._onlyDigits)
++                     {
++                        clipText = clipText.replace(/[^0-9]/g,"");
++                     }
++                     startIdx = Math.min(_textField.selectionBeginIndex,_textField.selectionEndIndex);
++                     endIdx = Math.max(_textField.selectionBeginIndex,_textField.selectionEndIndex);
++                     curText = _textField.text;
++                     newText = curText.substring(0,startIdx) + clipText + curText.substring(endIdx);
++                     if(this._maxLength > 0 && newText.length > this._maxLength)
++                     {
++                        newText = newText.substring(0,this._maxLength);
++                     }
++                     _textField.text = newText;
++                     _text = newText;
++                     caretPos = Math.min(newText.length,startIdx + clipText.length);
++                     _textField.setSelection(caretPos,caretPos);
++                     dispatchEvent(new Event(Event.CHANGE));
++                  }
++               }
++            }
++            catch(err:Error)
++            {
++            }
+          }
+       }
+ 

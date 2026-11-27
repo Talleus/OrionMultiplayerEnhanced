@@ -1,0 +1,34 @@
+--- a/orion/ui/base/BaseButtonUI.as
++++ b/orion/ui/base/BaseButtonUI.as
+@@ -14,6 +14,8 @@
+       protected var _down:Boolean;
+ 
+       protected var _clickSound:Sound;
++
++      private var _isScaled:Boolean = false;
+ 
+       public function BaseButtonUI(param1:DisplayObjectContainer, param2:int = 0, param3:int = 0)
+       {
+@@ -63,6 +65,22 @@
+       protected function setDown(param1:Boolean) : void
+       {
+          this._down = param1;
++         if(this._down && !this._isScaled)
++         {
++            this._isScaled = true;
++            this.scaleX *= 0.95;
++            this.scaleY *= 0.95;
++            this.x += this._width * 0.05 / 2;
++            this.y += this._height * 0.05 / 2;
++         }
++         else if(!this._down && this._isScaled)
++         {
++            this._isScaled = false;
++            this.scaleX /= 0.95;
++            this.scaleY /= 0.95;
++            this.x -= this._width * 0.05 / 2;
++            this.y -= this._height * 0.05 / 2;
++         }
+          invalidate();
+       }
+ 
