@@ -1,5 +1,7 @@
 # Contributing
 
+The project is in active development. Report bugs, ask questions, and suggest improvements through [GitHub Issues](https://github.com/Talleus/OrionMultiplayerEnhanced/issues). Please include the build version and reproduction steps for bugs. Feedback is welcome in Russian or English; no personal email address is needed.
+
 Keep changes focused. Describe behavior, source/binary correspondence, and actual validation. Keep AS3 as UTF-8 without BOM; avoid legacy PowerShell encoding round trips.
 
 New mod classes belong in `src/`; original-dependent changes belong in `patches/` and `source-manifest.json`. Never commit a full original decompilation, original binaries/assets/runtime, saves, crash logs, credentials, or machine-specific paths.

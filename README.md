@@ -2,7 +2,13 @@
 
 <p align="center"><strong>Orion Sandbox Enhanced, with all our changes.</strong><br>An unofficial modified edition: single-player and multiplayer worlds, characters, maps, interface improvements, and fixes.</p>
 
-<p align="center"><a href="README.ru.md">Русский</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases">Downloads</a> · <a href="docs/INSTALL.md">Installation</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="docs/BUILD.md">Build</a></p>
+<p align="center"><a href="README.ru.md">Русский</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases">Downloads</a> · <a href="docs/INSTALL.md">Installation</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="docs/BUILD.md">Build</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Feedback</a></p>
+
+## Development and feedback
+
+**This project is still in active development.** We continue to improve the game, multiplayer features, interface, and installer. Preview releases may contain bugs and unfinished features.
+
+If something does not work, or you have a question or suggestion, contact us through [GitHub Issues](https://github.com/Talleus/OrionMultiplayerEnhanced/issues). We discuss problems and ideas there; no personal email address is needed. When possible, include your build version, steps to reproduce the problem, and a screenshot.
 
 ## Download and install
 
