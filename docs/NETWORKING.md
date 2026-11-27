@@ -1,6 +1,6 @@
 # Networking
 
-The mod uses host-authoritative TCP; the default port is **27015/TCP**. Everyone should use the same release. This preview retains legacy wire protocol version `4` and wire compatibility label `0.4.5`; the public package version is `0.5.0-preview.1`.
+The mod uses host-authoritative TCP; the default port is **27015/TCP**. Everyone should use the same release. This version retains legacy wire protocol version `4` and wire compatibility label `0.4.5`; the public package version is `1.0`.
 
 Start with a trusted LAN/private VPN. The host must have a room running. Use the host's reachable IP: `127.0.0.1` only reaches the same computer; `0.0.0.0` is not a client destination. Keep firewall access scoped to the intended private network.
 

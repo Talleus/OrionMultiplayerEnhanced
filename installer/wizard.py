@@ -29,7 +29,7 @@ TEXT = {
         "notice": "Includes our changes to worlds, characters, maps, interface, and multiplayer. Setup installs the modified edition in a separate folder and creates a launch shortcut.",
         "before": "Before you begin",
         "included": "The complete working modified edition is included in setup.",
-        "saves": "Back up your game saves before playing this preview.",
+        "saves": "Back up your game saves before playing.",
         "preview": "Unofficial community modification. Original game rights remain with their owners.",
         "paths": "Choose installation folder",
         "paths_subtitle": "Choose where to install OrionMultiplayerEnhanced",

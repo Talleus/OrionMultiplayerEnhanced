@@ -1,7 +1,7 @@
 {
   "name": "OrionMultiplayerEnhanced",
-  "version": "0.5.0-preview.1",
-  "status": "preview",
+  "version": "1.0",
+  "status": "active-development",
   "kind": "unofficial-mod",
   "description": "Unofficial modified edition of Orion Sandbox Enhanced with single-player, multiplayer, characters, map, interface improvements, and fixes",
   "license": "MIT (original mod contributions only)",

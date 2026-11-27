@@ -63,7 +63,7 @@ python tools\build_installer.py --game-folder local\prepared-game
 Pass a complete verified working game folder when building setup. The builder snapshots only runtime files, verifies the modified SWF, and excludes saves, development files, and backup builds. PyInstaller bundles this snapshot and the setup runtime into `dist/`. End users select only the destination; an existing Orion installation is not required. For unattended testing:
 
 ```powershell
-& '.\dist\OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe' --headless --no-shortcuts --destination '<NEW_TEST_FOLDER>' --log build\setup-test.json
+& '.\dist\OrionMultiplayerEnhanced-1.0-Setup.exe' --headless --no-shortcuts --destination '<NEW_TEST_FOLDER>' --log build\setup-test.json
 ```
 
 Unit tests/CI use synthetic game fixtures. Only developer reconstruction and packaging require local game files. The generated game bundle and setup binaries stay outside Git.

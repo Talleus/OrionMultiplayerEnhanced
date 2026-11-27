@@ -1,21 +1,21 @@
-<p align="center"><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe"><img src="docs/assets/download-windows.svg" alt="Скачать установщик для Windows (.exe), около 90 МБ" width="360" height="68"></a><br><strong>0.5.0-preview.1 · Windows 10/11 x64</strong><br><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v0.5.0-preview.1">Описание релиза</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/SHA256SUMS.txt">SHA-256</a></p>
+<p align="center"><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe"><img src="docs/assets/download-windows.svg" alt="Скачать установщик для Windows (.exe), около 90 МБ" width="360" height="68"></a><br><strong>1.0 · Windows 10/11 x64</strong><br><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v1.0">Описание релиза</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/SHA256SUMS.txt">SHA-256</a></p>
 
 <p align="center"><img src="docs/assets/banner.png" alt="OrionMultiplayerEnhanced — оригинальный фон Orion и надпись MULTIPLAYER" width="880"></p>
 
 <p align="center"><strong>Orion Sandbox Enhanced со всеми нашими изменениями.</strong><br>Неофициальная модифицированная версия: одиночные и сетевые миры, персонажи, карта, доработки интерфейса и исправления.</p>
 
-<p align="center"><a href="README.md">English</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe">Скачать .exe</a> · <a href="docs/INSTALL.md">Установка</a> · <a href="docs/COMMANDS.md">Команды</a> · <a href="docs/BUILD.md">Сборка</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Обратная связь</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe">Скачать .exe</a> · <a href="docs/INSTALL.md">Установка</a> · <a href="docs/COMMANDS.md">Команды</a> · <a href="docs/BUILD.md">Сборка</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Обратная связь</a></p>
 
 ## Разработка и обратная связь
 
-**Проект ещё в активной разработке.** Мы продолжаем дорабатывать игру, сетевые функции, интерфейс и установщик. В предварительных версиях возможны ошибки и незавершённые функции.
+**Проект ещё в активной разработке.** Мы продолжаем дорабатывать игру, сетевые функции, интерфейс и установщик. В версии 1.0 возможны ошибки и незавершённые функции.
 
 Если что-то не работает, есть вопрос или идея — обращайтесь через [GitHub Issues](https://github.com/Talleus/OrionMultiplayerEnhanced/issues). Там же обсуждаем проблемы и предложения; личную почту оставлять не нужно. По возможности укажите версию сборки, шаги воспроизведения и приложите скриншот.
 
 ## Скачать и установить
 
 1. Сделайте резервную копию существующих сохранений Orion.
-2. [Скачайте установщик для Windows (.exe)](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe).
+2. [Скачайте установщик для Windows (.exe)](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe).
 3. Запустите мастер и выберите **папку установки**.
 4. Открывайте **OrionMultiplayerEnhanced** через ярлык на рабочем столе или в меню «Пуск».
 
@@ -35,7 +35,7 @@
 - Полноэкранная карта, подписи блоков, портреты по направлению движения и X-Ray.
 - Зелёные кнопки «Назад» на сетевых панелях и странице миров; в подключении **«Назад» справа от «Подключиться»**.
 
-Установщик включает весь текущий набор изменений: все 8 новых классов и все 47 изменённых классов оригинала. Сетевая игра — одна из частей этой версии. Это **предварительный релиз**. Реализация функции не означает её проверку во всех сетевых сценариях: см. [проверки и ограничения](docs/TESTING.md).
+Установщик включает весь текущий набор изменений: все 8 новых классов и все 47 изменённых классов оригинала. Сетевая игра — одна из частей этой версии. Версия **1.0** остаётся в активной разработке. Реализация функции не означает её проверку во всех сетевых сценариях: см. [проверки и ограничения](docs/TESTING.md).
 
 ## Как играть вместе
 
@@ -44,7 +44,7 @@
 3. Остальные открывают «Присоединиться к лобби», вводят доступный IP хоста и TCP-порт `27015`.
 4. Хост запускает мир. Справка в чате: `/help`.
 
-Для предварительной версии используйте доверенных игроков в LAN или частной VPN. Мод пока не рассчитан на открытые серверы с недоверенными клиентами. [Подробнее о сети](docs/NETWORKING.md).
+Для сетевой игры используйте доверенных игроков в LAN или частной VPN. Мод пока не рассчитан на открытые серверы с недоверенными клиентами. [Подробнее о сети](docs/NETWORKING.md).
 
 ## Операторы
 

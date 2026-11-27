@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0-preview.1 — 2026-11-27
+## 1.0 — 2026-11-27
 
 - Package the complete working modified edition in an offline Windows installer; only the destination folder is requested.
 - Use a conventional Windows wizard with Russian/English text and the original Orion character face.

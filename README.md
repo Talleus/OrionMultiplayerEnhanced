@@ -1,21 +1,21 @@
-<p align="center"><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe"><img src="docs/assets/download-windows.svg" alt="Download the Windows installer (.exe), about 90 MB" width="360" height="68"></a><br><strong>0.5.0-preview.1 · Windows 10/11 x64</strong><br><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v0.5.0-preview.1">Release notes</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/SHA256SUMS.txt">SHA-256</a></p>
+<p align="center"><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe"><img src="docs/assets/download-windows.svg" alt="Download the Windows installer (.exe), about 90 MB" width="360" height="68"></a><br><strong>1.0 · Windows 10/11 x64</strong><br><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v1.0">Release notes</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/SHA256SUMS.txt">SHA-256</a></p>
 
 <p align="center"><img src="docs/assets/banner.png" alt="OrionMultiplayerEnhanced — original Orion menu artwork with MULTIPLAYER lettering" width="880"></p>
 
 <p align="center"><strong>Orion Sandbox Enhanced, with all our changes.</strong><br>An unofficial modified edition: single-player and multiplayer worlds, characters, maps, interface improvements, and fixes.</p>
 
-<p align="center"><a href="README.ru.md">Русский</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe">Download .exe</a> · <a href="docs/INSTALL.md">Installation</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="docs/BUILD.md">Build</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Feedback</a></p>
+<p align="center"><a href="README.ru.md">Русский</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe">Download .exe</a> · <a href="docs/INSTALL.md">Installation</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="docs/BUILD.md">Build</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Feedback</a></p>
 
 ## Development and feedback
 
-**This project is still in active development.** We continue to improve the game, multiplayer features, interface, and installer. Preview releases may contain bugs and unfinished features.
+**This project is still in active development.** We continue to improve the game, multiplayer features, interface, and installer. Version 1.0 may contain bugs and unfinished features.
 
 If something does not work, or you have a question or suggestion, contact us through [GitHub Issues](https://github.com/Talleus/OrionMultiplayerEnhanced/issues). We discuss problems and ideas there; no personal email address is needed. When possible, include your build version, steps to reproduce the problem, and a screenshot.
 
 ## Download and install
 
 1. Back up any existing Orion saves.
-2. [Download the Windows installer (.exe)](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe).
+2. [Download the Windows installer (.exe)](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v1.0/OrionMultiplayerEnhanced-1.0-Setup.exe).
 3. Run setup and choose a **new installation folder**.
 4. Start **OrionMultiplayerEnhanced** from its desktop or Start menu shortcut.
 
@@ -35,7 +35,7 @@ The offline installer contains the complete working modified edition and its AIR
 - Fullscreen map controls, hover labels, facing-aware portrait markers, and X-Ray commands.
 - Green Back buttons inside network/world panels; **Back is beside Connect** on the join panel.
 
-The installer includes the complete current set of changes: all 8 new classes and all 47 modified original classes. Multiplayer is one part of this edition. This is a **preview**. Implemented features have different levels of runtime validation; see the [test matrix and limitations](docs/TESTING.md).
+The installer includes the complete current set of changes: all 8 new classes and all 47 modified original classes. Multiplayer is one part of this edition. Version **1.0** is still in active development. Implemented features have different levels of runtime validation; see the [test matrix and limitations](docs/TESTING.md).
 
 ## Play together
 
@@ -44,7 +44,7 @@ The installer includes the complete current set of changes: all 8 new classes an
 3. Other players choose **Join lobby**, enter the host IP and TCP port `27015`, and connect.
 4. The host starts the world. Type `/help` in chat.
 
-Use trusted LAN/private-VPN peers during preview testing. This is not a hardened public server. See [networking](docs/NETWORKING.md).
+Use trusted LAN/private-VPN peers during multiplayer testing. This is not a hardened public server. See [networking](docs/NETWORKING.md).
 
 ## Operators
 

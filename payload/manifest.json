@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "OrionMultiplayerEnhanced",
-  "version": "0.5.0-preview.1",
+  "version": "1.0",
   "base": {
     "file_sha256": "233befd6a79bb5c74624467fddcbba4ea2dccf0907a1315c9e816530e0e15313",
     "expanded_sha256": "ea1dc1b812e488f5386cb1e30749206eadacc27dfc22ae45e8739de384f056fe",
