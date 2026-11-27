@@ -1,8 +1,10 @@
+<p align="center"><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe"><img src="docs/assets/download-windows.svg" alt="Download the Windows installer (.exe), about 90 MB" width="360" height="68"></a><br><strong>0.5.0-preview.1 · Windows 10/11 x64</strong><br><a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v0.5.0-preview.1">Release notes</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/SHA256SUMS.txt">SHA-256</a></p>
+
 <p align="center"><img src="docs/assets/banner.png" alt="OrionMultiplayerEnhanced — original Orion menu artwork with MULTIPLAYER lettering" width="880"></p>
 
 <p align="center"><strong>Orion Sandbox Enhanced, with all our changes.</strong><br>An unofficial modified edition: single-player and multiplayer worlds, characters, maps, interface improvements, and fixes.</p>
 
-<p align="center"><a href="README.ru.md">Русский</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases">Downloads</a> · <a href="docs/INSTALL.md">Installation</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="docs/BUILD.md">Build</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Feedback</a></p>
+<p align="center"><a href="README.ru.md">Русский</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe">Download .exe</a> · <a href="docs/INSTALL.md">Installation</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="docs/BUILD.md">Build</a> · <a href="https://github.com/Talleus/OrionMultiplayerEnhanced/issues">Feedback</a></p>
 
 ## Development and feedback
 
@@ -13,7 +15,7 @@ If something does not work, or you have a question or suggestion, contact us thr
 ## Download and install
 
 1. Back up any existing Orion saves.
-2. Download `OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe` from [Releases](https://github.com/Talleus/OrionMultiplayerEnhanced/releases).
+2. [Download the Windows installer (.exe)](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe).
 3. Run setup and choose a **new installation folder**.
 4. Start **OrionMultiplayerEnhanced** from its desktop or Start menu shortcut.
 

@@ -1,5 +1,15 @@
 # Installation / Установка
 
+## [Download / Скачать установщик Windows (.exe)](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe)
+
+**0.5.0-preview.1 · Windows 10/11 x64 · about 90 MB / около 90 МБ.**
+
+[Release notes / Описание релиза](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/tag/v0.5.0-preview.1) · [SHA-256](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/SHA256SUMS.txt)
+
+The `.exe` link above downloads the complete installer directly. Source archives are for development.
+
+Ссылка `.exe` выше сразу скачивает готовый установщик. Архивы исходного кода предназначены для разработки.
+
 ## Requirements
 
 Windows 10/11 x64 and about 500 MB free including temporary files. Setup includes the complete modified game and AIR runtime. No original-game folder, Python, Java, or FFDec is required.
@@ -24,7 +34,7 @@ Setup/uninstall never delete or overwrite that external directory. Playing and s
 
 ## Install
 
-1. Download setup and `SHA256SUMS.txt` from the same GitHub release.
+1. [Download the Windows installer (.exe)](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/OrionMultiplayerEnhanced-0.5.0-preview.1-Setup.exe) and [SHA256SUMS.txt](https://github.com/Talleus/OrionMultiplayerEnhanced/releases/download/v0.5.0-preview.1/SHA256SUMS.txt).
 2. Compare the checksum with PowerShell `Get-FileHash -Algorithm SHA256 <setup-file>`.
 3. Run setup and select Russian or English.
 4. Choose a **new** destination, normally `%LOCALAPPDATA%\Programs\OrionMultiplayerEnhanced`.
